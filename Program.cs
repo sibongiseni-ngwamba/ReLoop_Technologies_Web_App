@@ -93,3 +93,5 @@ static Dictionary<string, string[]> Validate<T>(T model)
         .GroupBy(result => result.MemberNames.FirstOrDefault() ?? string.Empty)
         .ToDictionary(group => group.Key, group => group.Select(result => result.ErrorMessage ?? "Invalid value").ToArray());
 }
+
+public partial class Program;
