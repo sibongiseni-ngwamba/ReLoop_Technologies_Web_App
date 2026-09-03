@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+using ReLoop_Technologies_Web_App.Data;
 using ReLoop_Technologies_Web_App.Models;
 using ReLoop_Technologies_Web_App.Services;
 
@@ -10,7 +12,9 @@ builder.Logging.AddDebug();
 
 // Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddSingleton<ReLoopStore>();
+builder.Services.AddDbContext<ReLoopDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("ReLoopDatabase")));
+builder.Services.AddScoped<ReLoopStore>();
 
 var app = builder.Build();
 
@@ -31,7 +35,7 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 
-app.MapPost("/api/auth/login", (AuthRequest request) =>
+app.MapPost("/api/auth/login", async (AuthRequest request, ReLoopStore store) =>
 {
     var errors = Validate(request);
     if (errors.Count > 0)
@@ -39,10 +43,11 @@ app.MapPost("/api/auth/login", (AuthRequest request) =>
         return Results.ValidationProblem(errors);
     }
 
-    return Results.Ok(new { user = "Alex Rivera", role = request.Email.Contains("admin", StringComparison.OrdinalIgnoreCase) ? "Admin" : "Member" });
+    var user = await store.FindOrCreateUserAsync("Alex Rivera", request.Email, request.Password);
+    return Results.Ok(new { user = user.FullName, role = user.Role });
 }).WithTags("Authentication");
 
-app.MapPost("/api/auth/signup", (SignUpRequest request) =>
+app.MapPost("/api/auth/signup", async (SignUpRequest request, ReLoopStore store) =>
 {
     var errors = Validate(request);
     if (errors.Count > 0)
@@ -50,12 +55,13 @@ app.MapPost("/api/auth/signup", (SignUpRequest request) =>
         return Results.ValidationProblem(errors);
     }
 
-    return Results.Created("/Dashboard", new { user = request.FullName, role = "Member" });
+    var user = await store.FindOrCreateUserAsync(request.FullName, request.Email, request.Password);
+    return Results.Created("/Dashboard", new { user = user.FullName, role = user.Role });
 }).WithTags("Authentication");
 
-app.MapGet("/api/dashboard", (ReLoopStore store) => Results.Ok(store.GetDashboard())).WithTags("Dashboard");
-app.MapGet("/api/pickups", (ReLoopStore store, string? status) => Results.Ok(store.GetPickups(status))).WithTags("Pickups");
-app.MapPost("/api/pickups", (CreatePickupRequest request, ReLoopStore store) =>
+app.MapGet("/api/dashboard", async (ReLoopStore store) => Results.Ok(await store.GetDashboardAsync())).WithTags("Dashboard");
+app.MapGet("/api/pickups", async (ReLoopStore store, string? status) => Results.Ok(await store.GetPickupsAsync(status))).WithTags("Pickups");
+app.MapPost("/api/pickups", async (CreatePickupRequest request, ReLoopStore store) =>
 {
     var errors = Validate(request);
     if (errors.Count > 0)
@@ -63,16 +69,16 @@ app.MapPost("/api/pickups", (CreatePickupRequest request, ReLoopStore store) =>
         return Results.ValidationProblem(errors);
     }
 
-    return Results.Created("/api/pickups", store.CreatePickup(request));
+    return Results.Created("/api/pickups", await store.CreatePickupAsync(request));
 }).WithTags("Pickups");
 
-app.MapPost("/api/scan/classify", (HttpRequest request, ReLoopStore store) =>
+app.MapPost("/api/scan/classify", async (HttpRequest request, ReLoopStore store) =>
 {
     var fileName = request.Form.Files.FirstOrDefault()?.FileName ?? "plastic-bottle.jpg";
-    return Results.Ok(store.ClassifyScan(fileName));
+    return Results.Ok(await store.ClassifyScanAsync(fileName));
 }).DisableAntiforgery().WithTags("Scan");
 
-app.MapGet("/api/admin/stats", (ReLoopStore store) => Results.Ok(store.GetAdminStats())).WithTags("Admin");
+app.MapGet("/api/admin/stats", async (ReLoopStore store) => Results.Ok(await store.GetAdminStatsAsync())).WithTags("Admin");
 app.MapGet("/api/rewards", () => Results.Ok(new { points = 1200, tier = "Circular Citizen", nextRewardAt = 1500 })).WithTags("Rewards");
 
 app.Run();

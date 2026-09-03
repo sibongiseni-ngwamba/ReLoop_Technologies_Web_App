@@ -1,85 +1,196 @@
+using Microsoft.EntityFrameworkCore;
+using ReLoop_Technologies_Web_App.Data;
+using ReLoop_Technologies_Web_App.Data.Entities;
 using ReLoop_Technologies_Web_App.Models;
 
 namespace ReLoop_Technologies_Web_App.Services;
 
-public sealed class ReLoopStore
+public sealed class ReLoopStore(ReLoopDbContext dbContext)
 {
-    private readonly List<PickupDto> _pickups =
-    [
-        new("#LP-9082", "12 May 2025, 09:00 AM", "452 Eco Circular Ave, Suite 3B", "Recyclables", "Pending", "Scheduled"),
-        new("#LP-8931", "08 May 2025, 02:30 PM", "452 Eco Circular Ave, Suite 3B", "Organic", "4.5 kg", "Completed"),
-        new("#LP-8742", "05 May 2025, 11:20 AM", "452 Eco Circular Ave, Suite 3B", "Recyclables", "1.2 kg", "Completed"),
-        new("#LP-8521", "28 Apr 2025, 10:00 AM", "710 Greenwood Terrace", "E-waste", "--", "Cancelled")
-    ];
+    private static readonly Guid DemoUserId = new("2fc1f806-b68c-4a06-94fd-a97afcc24f2f");
 
-    private readonly List<ActivityDto> _activity =
-    [
-        new("Plastic bottle scan saved", "Recyclable PET 1 classified at 0.2 kg", "10 May 2025", "success"),
-        new("Doorstep pickup scheduled", "Recyclables collection booked for 12 May 2025", "09 May 2025", "info"),
-        new("Reward points issued", "+10 eco points added to Alex Rivera", "08 May 2025", "success")
-    ];
-
-    public DashboardDto GetDashboard() => new(
-        "Alex Rivera",
-        [
-            new("Reward Points", "1,200 pts", "+120 this month", "success"),
-            new("Items Scanned", "48", "89% verified accuracy", "info"),
-            new("Weight Diverted", "82.4 kg", "Away from landfill", "warning"),
-            new("Scheduled Pickups", "2", "Next pickup: 12 May", "neutral")
-        ],
-        _activity,
-        _pickups.Take(3));
-
-    public IReadOnlyList<PickupDto> GetPickups(string? status = null)
+    public async Task<UserAccount> FindOrCreateUserAsync(string fullName, string email, string password)
     {
-        if (string.IsNullOrWhiteSpace(status) || status.Equals("All", StringComparison.OrdinalIgnoreCase))
+        var user = await dbContext.Users.FirstOrDefaultAsync(candidate => candidate.Email == email);
+        if (user is not null)
         {
-            return _pickups;
+            return user;
         }
 
-        return _pickups
-            .Where(p => p.Status.Equals(status, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        user = new UserAccount
+        {
+            Id = Guid.NewGuid(),
+            FullName = fullName,
+            Email = email,
+            PasswordHash = $"demo-{password.Length}-chars",
+            Role = email.Contains("admin", StringComparison.OrdinalIgnoreCase) ? "Admin" : "Member",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.Users.Add(user);
+        await dbContext.SaveChangesAsync();
+        return user;
     }
 
-    public PickupDto CreatePickup(CreatePickupRequest request)
+    public async Task<DashboardDto> GetDashboardAsync()
     {
-        var pickup = new PickupDto(
-            $"#LP-{Random.Shared.Next(9100, 9999)}",
-            $"{request.PreferredDate:dd MMM yyyy}, {request.PreferredTimeWindow}",
-            request.HomeAddress,
-            request.WasteCategory,
-            "Pending",
-            "Scheduled");
+        var user = await GetDemoUserAsync();
+        var pickups = await dbContext.Pickups
+            .Where(pickup => pickup.UserAccountId == user.Id)
+            .OrderByDescending(pickup => pickup.ScheduledFor)
+            .ToListAsync();
+        var scans = await dbContext.ScanRecords.Where(scan => scan.UserAccountId == user.Id).ToListAsync();
+        var activity = await dbContext.ActivityLogs
+            .Where(log => log.UserAccountId == user.Id)
+            .OrderByDescending(log => log.CreatedAt)
+            .Take(6)
+            .Select(log => new ActivityDto(log.Title, log.Detail, FormatDate(log.CreatedAt), log.Tone))
+            .ToListAsync();
+        var completedWeight = pickups.Where(pickup => pickup.EstimatedWeightKg.HasValue).Sum(pickup => pickup.EstimatedWeightKg!.Value);
 
-        _pickups.Insert(0, pickup);
-        _activity.Insert(0, new("Pickup request submitted", $"{request.WasteCategory} collection created for {request.PreferredDate:dd MMM yyyy}", "Today", "info"));
-        return pickup;
+        return new DashboardDto(
+            user.FullName,
+            [
+                new("Reward Points", $"{user.RewardPoints:N0} pts", "+120 this month", "success"),
+                new("Items Scanned", scans.Count.ToString("N0"), "94% latest confidence", "info"),
+                new("Weight Diverted", $"{completedWeight:N1} kg", "Away from landfill", "warning"),
+                new("Scheduled Pickups", pickups.Count(pickup => pickup.Status == "Scheduled").ToString("N0"), "Next pickup: 12 May", "neutral")
+            ],
+            activity,
+            pickups.Take(3).Select(ToPickupDto));
     }
 
-    public ScanResultDto ClassifyScan(string fileName)
+    public async Task<IReadOnlyList<PickupDto>> GetPickupsAsync(string? status = null)
+    {
+        var query = dbContext.Pickups.Where(pickup => pickup.UserAccountId == DemoUserId);
+        if (!string.IsNullOrWhiteSpace(status) && !status.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(pickup => pickup.Status == status);
+        }
+
+        return await query
+            .OrderByDescending(pickup => pickup.ScheduledFor)
+            .Select(pickup => ToPickupDto(pickup))
+            .ToListAsync();
+    }
+
+    public async Task<PickupDto> CreatePickupAsync(CreatePickupRequest request)
+    {
+        var pickup = new Pickup
+        {
+            Id = Guid.NewGuid(),
+            UserAccountId = DemoUserId,
+            ReferenceNumber = $"#LP-{Random.Shared.Next(9100, 9999)}",
+            ScheduledFor = BuildPickupDate(request.PreferredDate, request.PreferredTimeWindow),
+            Address = request.HomeAddress,
+            WasteType = request.WasteCategory,
+            Status = "Scheduled",
+            Notes = request.Notes,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.Pickups.Add(pickup);
+        dbContext.ActivityLogs.Add(new ActivityLog
+        {
+            Id = Guid.NewGuid(),
+            UserAccountId = DemoUserId,
+            Title = "Pickup request submitted",
+            Detail = $"{request.WasteCategory} collection created for {request.PreferredDate:dd MMM yyyy}",
+            Tone = "info",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync();
+        return ToPickupDto(pickup);
+    }
+
+    public async Task<ScanResultDto> ClassifyScanAsync(string fileName)
     {
         var lower = fileName.ToLowerInvariant();
         var category = lower.Contains("glass") ? "Glass Bottles" : lower.Contains("paper") ? "Paper" : "Plastics (PET 1)";
         var item = category == "Paper" ? "Cardboard Sheet" : category == "Glass Bottles" ? "Glass Jar" : "Plastic Bottle";
         var points = category == "Glass Bottles" ? 14 : category == "Paper" ? 8 : 10;
+        var result = new ScanRecord
+        {
+            Id = Guid.NewGuid(),
+            UserAccountId = DemoUserId,
+            ItemName = item,
+            Disposition = "Recyclable",
+            Category = category,
+            EstimatedWeightKg = 0.2m,
+            PointsAwarded = points,
+            Confidence = 94,
+            FileName = fileName,
+            ScannedAt = DateTimeOffset.UtcNow
+        };
 
-        _activity.Insert(0, new($"{item} scan completed", $"{category} verified with high confidence", "Today", "success"));
-        return new ScanResultDto(item, "Recyclable", category, "0.2 kg", points, 94, DateTimeOffset.Now);
+        dbContext.ScanRecords.Add(result);
+        dbContext.ActivityLogs.Add(new ActivityLog
+        {
+            Id = Guid.NewGuid(),
+            UserAccountId = DemoUserId,
+            Title = $"{item} scan completed",
+            Detail = $"{category} verified with high confidence",
+            Tone = "success",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync();
+        return ToScanDto(result);
     }
 
-    public AdminStatsDto GetAdminStats() => new(
-        [
-            new("Total Active Users", "1,250", "+12% this week", "success"),
-            new("Items Scanned", "320", "89% correct verification", "info"),
-            new("Total Weight Diverted", "1,870 kg", "Circular output goal", "warning"),
-            new("Reward Points Logged", "15,620", "92% redemption active", "danger")
-        ],
-        [
-            new("Plastic", 45, "success"),
-            new("Paper", 25, "info"),
-            new("Glass", 20, "warning"),
-            new("Metal", 10, "danger")
-        ],
-        _pickups);
+    public async Task<AdminStatsDto> GetAdminStatsAsync()
+    {
+        var users = await dbContext.Users.CountAsync();
+        var scans = await dbContext.ScanRecords.CountAsync();
+        var totalWeight = await dbContext.Pickups.Where(pickup => pickup.EstimatedWeightKg.HasValue).SumAsync(pickup => pickup.EstimatedWeightKg!.Value);
+        var rewards = await dbContext.RewardLedger.SumAsync(entry => entry.Points);
+        var pickups = await dbContext.Pickups.OrderByDescending(pickup => pickup.CreatedAt).Take(8).ToListAsync();
+
+        return new AdminStatsDto(
+            [
+                new("Total Active Users", users.ToString("N0"), "+12% this week", "success"),
+                new("Items Scanned", scans.ToString("N0"), "94% latest confidence", "info"),
+                new("Total Weight Diverted", $"{totalWeight:N1} kg", "Circular output goal", "warning"),
+                new("Reward Points Logged", rewards.ToString("N0"), "Ledger total", "danger")
+            ],
+            [
+                new("Plastic", 45, "success"),
+                new("Paper", 25, "info"),
+                new("Glass", 20, "warning"),
+                new("Metal", 10, "danger")
+            ],
+            pickups.Select(ToPickupDto));
+    }
+
+    private async Task<UserAccount> GetDemoUserAsync() =>
+        await dbContext.Users.FindAsync(DemoUserId)
+        ?? throw new InvalidOperationException("Seed user was not found. Run EF Core migrations and database update.");
+
+    private static PickupDto ToPickupDto(Pickup pickup) => new(
+        pickup.ReferenceNumber,
+        pickup.ScheduledFor.ToString("dd MMM yyyy, hh:mm tt"),
+        pickup.Address,
+        pickup.WasteType,
+        pickup.EstimatedWeightKg.HasValue ? $"{pickup.EstimatedWeightKg:0.0} kg" : "Pending",
+        pickup.Status);
+
+    private static ScanResultDto ToScanDto(ScanRecord scan) => new(
+        scan.ItemName,
+        scan.Disposition,
+        scan.Category,
+        $"{scan.EstimatedWeightKg:0.0} kg",
+        scan.PointsAwarded,
+        scan.Confidence,
+        scan.ScannedAt);
+
+    private static string FormatDate(DateTimeOffset date) => date.Date == DateTimeOffset.UtcNow.Date ? "Today" : date.ToString("dd MMM yyyy");
+
+    private static DateTimeOffset BuildPickupDate(DateTime preferredDate, string timeWindow)
+    {
+        var timeText = timeWindow.Split('-')[0].Trim();
+        return DateTimeOffset.TryParse($"{preferredDate:yyyy-MM-dd} {timeText}", out var scheduled)
+            ? scheduled
+            : new DateTimeOffset(preferredDate);
+    }
 }
