@@ -1,0 +1,41 @@
+@page
+@{
+    ViewData["Title"] = "Admin Console";
+}
+
+<section class="app-page admin-page js-admin">
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <strong>Admin Panel</strong>
+            <a class="is-active" href="#overview">Overview</a>
+            <a href="#users">Users Management</a>
+            <a href="#pickups">Active Pickups</a>
+            <a href="#stats">Environmental Stats</a>
+            <a href="#partners">Partner Schedulers</a>
+        </aside>
+
+        <div>
+            <div class="page-heading">
+                <h1>Admin Command Console</h1>
+                <p>Monitor municipal collection performance, eco verification logs, and reward activity.</p>
+            </div>
+
+            <div class="metric-grid" data-admin-metrics></div>
+
+            <div class="content-grid">
+                <section class="panel">
+                    <h2>Waste Distribution by Type</h2>
+                    <div class="donut" aria-label="Waste distribution chart"><span>1.87 Tons</span></div>
+                    <div class="legend" data-admin-legend></div>
+                </section>
+                <section class="panel table-panel">
+                    <h2>Recent pickups pending verification</h2>
+                    <table class="app-table">
+                        <thead><tr><th>User</th><th>Date Logged</th><th>Type</th><th>Est. Weight</th><th>Status</th></tr></thead>
+                        <tbody data-admin-table></tbody>
+                    </table>
+                </section>
+            </div>
+        </div>
+    </div>
+</section>

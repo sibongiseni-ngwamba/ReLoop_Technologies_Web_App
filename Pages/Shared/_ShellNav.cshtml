@@ -7,9 +7,9 @@
 
 <nav class="reloop-nav" aria-label="Primary">
     <a class="reloop-nav__link @(IsCurrent("/Index") ? "is-active" : string.Empty)" asp-page="/Index">Home</a>
-    <a class="reloop-nav__link @(IsCurrent("/DesignSystem") ? "is-active" : string.Empty)" asp-page="/DesignSystem">Design System</a>
-    <span class="reloop-nav__link reloop-nav__link--placeholder" aria-disabled="true">Dashboard</span>
-    <span class="reloop-nav__link reloop-nav__link--placeholder" aria-disabled="true">Scan waste</span>
-    <span class="reloop-nav__link reloop-nav__link--placeholder" aria-disabled="true">Pickups</span>
-    <span class="reloop-nav__link reloop-nav__link--placeholder" aria-disabled="true">Rewards</span>
+    <a class="reloop-nav__link @(IsCurrent("/Dashboard") ? "is-active" : string.Empty)" asp-page="/Dashboard">Dashboard</a>
+    <a class="reloop-nav__link @(IsCurrent("/ScanWaste") ? "is-active" : string.Empty)" asp-page="/ScanWaste">Scan waste</a>
+    <a class="reloop-nav__link @(IsCurrent("/SchedulePickup") ? "is-active" : string.Empty)" asp-page="/SchedulePickup">Schedule Pickup</a>
+    <a class="reloop-nav__link @(IsCurrent("/MyPickups") ? "is-active" : string.Empty)" asp-page="/MyPickups">My Pickups</a>
+    <a class="reloop-nav__link @(IsCurrent("/Admin/Index") ? "is-active" : string.Empty)" asp-page="/Admin/Index">Admin</a>
 </nav>

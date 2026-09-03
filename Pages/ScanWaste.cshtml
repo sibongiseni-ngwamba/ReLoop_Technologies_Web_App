@@ -1,0 +1,38 @@
+@page
+@{
+    ViewData["Title"] = "Scan Waste";
+}
+
+<section class="app-page scan-page">
+    <div class="page-heading">
+        <h1>Scan & Classify Waste</h1>
+        <p>Upload a picture of any waste item and ReLoop will classify the material, reward value, and estimated weight.</p>
+    </div>
+
+    <div class="content-grid content-grid--wide">
+        <section class="panel scan-panel">
+            <form class="upload-zone js-scan-form" enctype="multipart/form-data">
+                <input id="scanFile" name="image" type="file" accept="image/*" hidden />
+                <label for="scanFile" class="upload-zone__drop">
+                    <span class="upload-zone__icon">□</span>
+                    <strong>Drag & drop an image or click to upload</strong>
+                    <small>Supports JPG, PNG, WEBP up to 10MB</small>
+                </label>
+                <button class="reloop-btn reloop-btn--primary" type="submit">Classify item</button>
+                <p class="form-status" aria-live="polite"></p>
+            </form>
+        </section>
+
+        <aside class="panel">
+            <h2>Tips for Best Results</h2>
+            <ol class="tips-list">
+                <li><strong>Clear Lighting</strong><span>Ensure the item is well lit and avoid deep shadows.</span></li>
+                <li><strong>Single Object Focus</strong><span>Scan one item at a time for better classification.</span></li>
+                <li><strong>Avoid Contamination</strong><span>Rinse glass and plastic containers before pickup.</span></li>
+            </ol>
+            <div class="notice-card"><strong>Rewards Notice</strong><span>Saving verified scans boosts your reward points on pickup.</span></div>
+        </aside>
+    </div>
+
+    <section class="scan-result panel" data-scan-result hidden></section>
+</section>

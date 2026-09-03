@@ -1,0 +1,31 @@
+@page
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<section class="app-page js-dashboard">
+    <div class="page-heading">
+        <p class="landing-eyebrow">Circular citizen dashboard</p>
+        <h1>Hello, Alex. Your recycling loop is moving.</h1>
+        <p>Track impact, schedule pickups, and keep your verified recycling activity in one place.</p>
+    </div>
+
+    <div class="metric-grid" data-dashboard-metrics></div>
+
+    <div class="action-grid">
+        <a class="action-card" asp-page="/ScanWaste"><span>Scan</span><strong>Classify a waste item</strong></a>
+        <a class="action-card" asp-page="/SchedulePickup"><span>Pickup</span><strong>Book doorstep collection</strong></a>
+        <a class="action-card" asp-page="/MyPickups"><span>Ledger</span><strong>Review collection history</strong></a>
+    </div>
+
+    <div class="content-grid">
+        <section class="panel">
+            <h2>Recent activity</h2>
+            <div class="activity-list" data-dashboard-activity></div>
+        </section>
+        <section class="panel">
+            <h2>Upcoming pickups</h2>
+            <div class="mini-table" data-dashboard-pickups></div>
+        </section>
+    </div>
+</section>

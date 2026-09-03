@@ -1,0 +1,50 @@
+@page
+@{
+    ViewData["Title"] = "Login";
+}
+
+<section class="auth-page">
+    <form class="auth-card js-api-form" data-endpoint="/api/auth/login" data-success="Signed in as Alex Rivera. Redirecting to dashboard..." data-redirect="/Dashboard" novalidate>
+        <a class="auth-brand brand-lockup" asp-page="/Index">
+            <span class="brand-lockup__mark" aria-hidden="true">
+                <svg viewBox="0 0 48 48"><path d="M16 11c-7 0-13 5.7-13 13s6 13 13 13c5.2 0 9.8-3 11.8-7.4l2.2-4.6 2.2 4.6C34.2 34 38.8 37 44 37c7 0 13-5.7 13-13s-6-13-13-13c-5.2 0-9.8 3-11.8 7.4L30 22l-2.2-4.6C25.8 14 21.2 11 16 11Z" fill="none" stroke="#16823a" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(-3 -1.5) scale(.72)" /></svg>
+            </span>
+            <span class="brand-lockup__copy">
+                <span class="brand-lockup__name">ReLoop</span>
+                <span class="brand-lockup__tag">Recycling Management System</span>
+            </span>
+        </a>
+
+        <div class="auth-card__heading">
+            <h1>Welcome back</h1>
+            <p>Login to manage circular recycling flows</p>
+        </div>
+
+        <label class="app-field">
+            <span>Email</span>
+            <input name="email" type="email" placeholder="Enter email address" required />
+            <small data-error-for="email"></small>
+        </label>
+
+        <label class="app-field">
+            <span>Password <a asp-page="/Login">Forgot?</a></span>
+            <input name="password" type="password" placeholder="Enter your password" minlength="6" required />
+            <small data-error-for="password"></small>
+        </label>
+
+        <label class="check-row">
+            <input name="keepSignedIn" type="checkbox" value="true" />
+            <span>Keep me signed in on this device</span>
+        </label>
+
+        <button class="reloop-btn reloop-btn--primary reloop-btn--full" type="submit">Login</button>
+        <p class="form-status" aria-live="polite"></p>
+
+        <div class="auth-divider"><span>OR CONNECT WITH</span></div>
+        <div class="auth-socials">
+            <button class="reloop-btn reloop-btn--ghost" type="button">Google</button>
+            <button class="reloop-btn reloop-btn--ghost" type="button">Apple</button>
+        </div>
+        <p class="auth-switch">Don't have an account? <a asp-page="/SignUp">Sign up</a></p>
+    </form>
+</section>
