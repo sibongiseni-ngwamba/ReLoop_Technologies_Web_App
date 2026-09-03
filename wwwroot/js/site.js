@@ -37,7 +37,7 @@ document.querySelectorAll(".js-api-form").forEach((form) => {
 
     try {
       await fetchJson(form.dataset.endpoint, {
-        method: "POST",
+        method: form.dataset.method || "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(readForm(form))
       });
@@ -48,6 +48,31 @@ document.querySelectorAll(".js-api-form").forEach((form) => {
       status.textContent = error.message;
       showFormErrors(form, error.payload?.errors);
     }
+  });
+});
+
+async function loadProfile() {
+  const root = document.querySelector(".js-profile");
+  if (!root) return;
+
+  const profile = await fetchJson("/api/profile");
+  root.querySelectorAll("[data-profile-field]").forEach((field) => {
+    field.value = profile[field.dataset.profileField] || "";
+  });
+  root.querySelector("[data-profile-summary]").innerHTML = `
+    <div class="profile-stat"><span>Role</span><strong>${profile.role}</strong></div>
+    <div class="profile-stat"><span>Reward Points</span><strong>${profile.rewardPoints}</strong></div>
+    <div class="profile-stat"><span>Scans</span><strong>${profile.scanCount}</strong></div>
+    <div class="profile-stat"><span>Pickups</span><strong>${profile.pickupCount}</strong></div>`;
+}
+
+document.querySelectorAll(".js-logout").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const status = button.parentElement.querySelector(".form-status");
+    await fetchJson("/api/auth/logout", { method: "POST" });
+    status.textContent = "You are logged out. Redirecting to the home page...";
+    status.classList.add("is-success");
+    window.setTimeout(() => window.location.assign("/"), 700);
   });
 });
 
@@ -122,3 +147,4 @@ async function loadAdmin() {
 loadDashboard();
 loadPickups();
 loadAdmin();
+loadProfile();

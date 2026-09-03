@@ -1,0 +1,52 @@
+@page
+@{
+    ViewData["Title"] = "Contact";
+}
+
+<section class="app-page">
+    <div class="content-grid content-grid--wide">
+        <form class="panel pickup-form js-api-form" data-endpoint="/api/contact" data-success="Message sent. The ReLoop team will respond soon." novalidate>
+            <h1>Contact ReLoop</h1>
+            <p>Send a question about collections, partnerships, admin access, or recycling support.</p>
+
+            <div class="form-two">
+                <label class="app-field">
+                    <span>Full name</span>
+                    <input name="fullName" required />
+                    <small data-error-for="fullName"></small>
+                </label>
+                <label class="app-field">
+                    <span>Email</span>
+                    <input name="email" type="email" required />
+                    <small data-error-for="email"></small>
+                </label>
+            </div>
+            <label class="app-field">
+                <span>Subject</span>
+                <input name="subject" placeholder="Pickup support" required />
+                <small data-error-for="subject"></small>
+            </label>
+            <label class="app-field">
+                <span>Message</span>
+                <textarea name="message" placeholder="Tell us how we can help..." required minlength="10"></textarea>
+                <small data-error-for="message"></small>
+            </label>
+            <button class="reloop-btn reloop-btn--primary" type="submit">Send message</button>
+            <p class="form-status" aria-live="polite"></p>
+        </form>
+
+        <aside class="panel contact-panel">
+            <h2>Support details</h2>
+            <dl>
+                <dt>Email</dt>
+                <dd>support@reloop.co.za</dd>
+                <dt>Phone</dt>
+                <dd>+27 10 555 0188</dd>
+                <dt>Hours</dt>
+                <dd>Monday to Friday, 08:00 - 17:00</dd>
+                <dt>Office</dt>
+                <dd>20 Circularity House, Johannesburg</dd>
+            </dl>
+        </aside>
+    </div>
+</section>

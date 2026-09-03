@@ -1,0 +1,52 @@
+@page
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<section class="app-page js-profile">
+    <div class="page-heading">
+        <p class="landing-eyebrow">Account settings</p>
+        <h1>Your ReLoop profile</h1>
+        <p>Manage your account details, preferred recycling category, and pickup address.</p>
+    </div>
+
+    <div class="content-grid content-grid--wide">
+        <form class="panel profile-form js-api-form" data-endpoint="/api/profile" data-method="PUT" data-success="Profile updated successfully." novalidate>
+            <label class="app-field">
+                <span>Full name</span>
+                <input name="fullName" data-profile-field="fullName" required />
+                <small data-error-for="fullName"></small>
+            </label>
+            <label class="app-field">
+                <span>Email</span>
+                <input name="email" type="email" data-profile-field="email" required />
+                <small data-error-for="email"></small>
+            </label>
+            <label class="app-field">
+                <span>Pickup address</span>
+                <input name="address" data-profile-field="address" required minlength="8" />
+                <small data-error-for="address"></small>
+            </label>
+            <label class="app-field">
+                <span>Preferred recycling category</span>
+                <select name="preferredCategory" data-profile-field="preferredCategory" required>
+                    <option>Recyclables</option>
+                    <option>Organic</option>
+                    <option>E-waste</option>
+                    <option>Municipal Reporting</option>
+                </select>
+                <small data-error-for="preferredCategory"></small>
+            </label>
+            <button class="reloop-btn reloop-btn--primary" type="submit">Save profile</button>
+            <p class="form-status" aria-live="polite"></p>
+        </form>
+
+        <aside class="panel profile-summary">
+            <h2>Account summary</h2>
+            <div data-profile-summary>
+                <p>Loading profile...</p>
+            </div>
+            <a class="reloop-btn reloop-btn--secondary reloop-btn--full" asp-page="/Logout">Logout</a>
+        </aside>
+    </div>
+</section>

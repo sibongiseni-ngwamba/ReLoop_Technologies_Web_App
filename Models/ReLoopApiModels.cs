@@ -13,6 +13,18 @@ public sealed record SignUpRequest(
     [property: Required, MinLength(6)] string Password,
     [property: Required, Compare("Password")] string ConfirmPassword);
 
+public sealed record ProfileUpdateRequest(
+    [property: Required] string FullName,
+    [property: Required, EmailAddress] string Email,
+    [property: Required, MinLength(8)] string Address,
+    [property: Required] string PreferredCategory);
+
+public sealed record ContactRequest(
+    [property: Required] string FullName,
+    [property: Required, EmailAddress] string Email,
+    [property: Required] string Subject,
+    [property: Required, MinLength(10)] string Message);
+
 public sealed record CreatePickupRequest(
     [property: Required, MinLength(8)] string HomeAddress,
     [property: Required] DateTime PreferredDate,
@@ -27,3 +39,4 @@ public sealed record ScanResultDto(string Item, string Disposition, string Categ
 public sealed record WasteSliceDto(string Type, int Percent, string Tone);
 public sealed record DashboardDto(string UserName, IEnumerable<MetricDto> Metrics, IEnumerable<ActivityDto> Activity, IEnumerable<PickupDto> Pickups);
 public sealed record AdminStatsDto(IEnumerable<MetricDto> Metrics, IEnumerable<WasteSliceDto> WasteDistribution, IEnumerable<PickupDto> PendingPickups);
+public sealed record ProfileDto(string FullName, string Email, string Role, string Address, string PreferredCategory, int RewardPoints, int ScanCount, int PickupCount);
