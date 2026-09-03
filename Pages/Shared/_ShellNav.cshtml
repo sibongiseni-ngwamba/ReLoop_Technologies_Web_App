@@ -1,0 +1,15 @@
+@{
+    var currentPage = (ViewContext.RouteData.Values["page"] as string ?? string.Empty).Trim();
+
+    bool IsCurrent(string page) =>
+        string.Equals(currentPage, page, StringComparison.OrdinalIgnoreCase);
+}
+
+<nav class="reloop-nav" aria-label="Primary">
+    <a class="reloop-nav__link @(IsCurrent("/Index") ? "is-active" : string.Empty)" asp-page="/Index">Home</a>
+    <a class="reloop-nav__link @(IsCurrent("/DesignSystem") ? "is-active" : string.Empty)" asp-page="/DesignSystem">Design System</a>
+    <span class="reloop-nav__link reloop-nav__link--placeholder" aria-disabled="true">Dashboard</span>
+    <span class="reloop-nav__link reloop-nav__link--placeholder" aria-disabled="true">Scan waste</span>
+    <span class="reloop-nav__link reloop-nav__link--placeholder" aria-disabled="true">Pickups</span>
+    <span class="reloop-nav__link reloop-nav__link--placeholder" aria-disabled="true">Rewards</span>
+</nav>

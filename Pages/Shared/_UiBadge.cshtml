@@ -1,0 +1,6 @@
+@model ReLoop_Technologies_Web_App.Models.UiBadgeModel
+@{
+    var tone = string.IsNullOrWhiteSpace(Model.Tone) ? "neutral" : Model.Tone.Trim().ToLowerInvariant();
+}
+
+<span class="reloop-badge reloop-badge--@tone">@Model.Text</span>

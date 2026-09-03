@@ -1,0 +1,43 @@
+@model ReLoop_Technologies_Web_App.Models.UiInputModel
+@{
+    var hasError = !string.IsNullOrWhiteSpace(Model.ErrorText);
+    var inputClass = hasError ? "reloop-field__control is-invalid" : "reloop-field__control";
+}
+
+<div class="reloop-field @(hasError ? "has-error" : string.Empty)">
+    <label class="reloop-field__label" for="@Model.Name">
+        @Model.Label
+        @if (Model.Required)
+        {
+            <span aria-hidden="true">*</span>
+        }
+    </label>
+
+    @if (Model.Multiline)
+    {
+        <textarea class="@inputClass" id="@Model.Name" name="@Model.Name" placeholder="@Model.Placeholder" rows="4">@Model.Value</textarea>
+    }
+    else if (Model.Options is { Count: > 0 })
+    {
+        <select class="@inputClass" id="@Model.Name" name="@Model.Name">
+            @foreach (var option in Model.Options)
+            {
+                <option value="@option.Value" selected="@(option.Selected ? "selected" : null)">@option.Text</option>
+            }
+        </select>
+    }
+    else
+    {
+        <input class="@inputClass" id="@Model.Name" name="@Model.Name" type="@Model.Type" placeholder="@Model.Placeholder" value="@Model.Value" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.HelpText))
+    {
+        <div class="reloop-field__hint">@Model.HelpText</div>
+    }
+
+    @if (hasError)
+    {
+        <div class="reloop-field__error">@Model.ErrorText</div>
+    }
+</div>

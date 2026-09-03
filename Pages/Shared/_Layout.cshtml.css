@@ -1,48 +1,102 @@
-﻿/* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-for details on configuring this project to bundle and minify static web assets. */
-
-a.navbar-brand {
-  white-space: normal;
-  text-align: center;
-  word-break: break-all;
+.reloop-shell__backdrop {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(22, 163, 74, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(15, 122, 53, 0.08), transparent 24%);
+  pointer-events: none;
+  z-index: -1;
 }
 
-a {
-  color: #0077cc;
+.reloop-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(17, 24, 39, 0.08);
 }
 
-.btn-primary {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
+.reloop-topbar__inner {
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
 }
 
-.nav-pills .nav-link.active, .nav-pills .show > .nav-link {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
+.reloop-topbar__actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.border-top {
-  border-top: 1px solid #e5e5e5;
-}
-.border-bottom {
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.box-shadow {
-  box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
+.reloop-footer {
+  margin-top: 4rem;
+  padding: 3rem 0 2rem;
+  background: linear-gradient(180deg, #1f2937 0%, #172131 100%);
+  color: rgba(255, 255, 255, 0.78);
 }
 
-button.accept-policy {
-  font-size: 1rem;
-  line-height: inherit;
+.reloop-footer__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
 }
 
-.footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  white-space: nowrap;
-  line-height: 60px;
+.reloop-footer__brand {
+  max-width: 30rem;
+}
+
+.reloop-footer__copy {
+  margin: 1rem 0 0;
+  max-width: 26rem;
+  line-height: 1.7;
+}
+
+.reloop-footer__links {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.reloop-footer__links h2 {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+.reloop-footer__links a {
+  display: block;
+  padding: 0.3rem 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.reloop-footer__links a[aria-disabled="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+@media (max-width: 991.98px) {
+  .reloop-topbar__inner {
+    flex-wrap: wrap;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .reloop-topbar__actions {
+    margin-left: 0;
+  }
+
+  .reloop-footer__inner {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .reloop-footer__links {
+    grid-template-columns: 1fr;
+  }
 }

@@ -1,0 +1,31 @@
+@model ReLoop_Technologies_Web_App.Models.UiButtonModel
+@{
+    var variant = string.IsNullOrWhiteSpace(Model.Variant) ? "primary" : Model.Variant.Trim().ToLowerInvariant();
+    var classes = string.Join(" ", new[]
+    {
+        "reloop-btn",
+        $"reloop-btn--{variant}",
+        Model.FullWidth ? "reloop-btn--full" : null
+    }.Where(item => !string.IsNullOrWhiteSpace(item)));
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.Href))
+{
+    <a class="@classes" href="@Model.Href">
+        @if (!string.IsNullOrWhiteSpace(Model.Icon))
+        {
+            <span class="reloop-btn__icon" aria-hidden="true">@Model.Icon</span>
+        }
+        <span>@Model.Text</span>
+    </a>
+}
+else
+{
+    <button class="@classes" type="@(Model.IsSubmit ? "submit" : "button")">
+        @if (!string.IsNullOrWhiteSpace(Model.Icon))
+        {
+            <span class="reloop-btn__icon" aria-hidden="true">@Model.Icon</span>
+        }
+        <span>@Model.Text</span>
+    </button>
+}

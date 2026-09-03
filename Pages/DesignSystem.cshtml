@@ -1,0 +1,109 @@
+@page
+@model ReLoop_Technologies_Web_App.Pages.DesignSystemModel
+@using ReLoop_Technologies_Web_App.Models
+@{
+    ViewData["Title"] = "Design System";
+    var backHomeButton = new UiButtonModel("Back to home", "/", "primary");
+    var previewHomeButton = new UiButtonModel("Preview home", "/Index", "secondary");
+    var primaryButton = new UiButtonModel("Primary", "/", "primary", false, false, "↗");
+    var secondaryButton = new UiButtonModel("Secondary", "/", "secondary");
+    var ghostButton = new UiButtonModel("Ghost", "/", "ghost");
+    var successBadge = new UiBadgeModel("Success", "success");
+    var warningBadge = new UiBadgeModel("Warning", "warning");
+    var neutralBadge = new UiBadgeModel("Neutral", "neutral");
+    var emailInput = new UiInputModel("Email address", "email", "email", "Enter email address", "alex@reloop.co.za", "Used for login and account recovery.");
+    var categoryInput = new UiInputModel("Waste category", "category", "text", null, null, null, null, false, true, new[]
+    {
+        new UiInputOption("recyclables", "Recyclables", true),
+        new UiInputOption("organic", "Organic"),
+        new UiInputOption("ewaste", "Electronic waste")
+    });
+    var pickupNotesInput = new UiInputModel("Pickup notes", "pickupNotes", "text", "Add gate code, collection notes, or item details.", null, "Helpful for doorstep scheduling.", "Notes are required for this sample.", true);
+    var passwordInput = new UiInputModel("Password", "password", "password", "Enter your password", null, "Keyboard and screen-reader friendly.");
+    var noRecordsState = new UiStateModel("No records yet", "This empty state can be reused across dashboard cards, tables, and forms when there is no data to display.", "Back to home", "/", "neutral");
+}
+
+<section class="reloop-hero">
+    <div class="reloop-hero__copy">
+        <p class="reloop-kicker">Issue 1</p>
+        <h1 class="reloop-hero__title">Global UI design system and layout foundation</h1>
+        <p class="reloop-hero__text">
+            The default scaffold has been replaced with a reusable ReLoop shell, component styles, and shared states
+            that match the calm green-first wireframe direction.
+        </p>
+        <div class="reloop-action-row">
+            <partial name="_UiButton" model="@backHomeButton" />
+            <partial name="_UiButton" model="@previewHomeButton" />
+        </div>
+    </div>
+
+    <div class="reloop-hero__panel">
+        <div class="reloop-stat-card">
+            <p class="reloop-stat-card__label">System tokens</p>
+            <strong class="reloop-stat-card__value">Colors, spacing, radius, shadows</strong>
+            <p class="reloop-stat-card__copy">Centralized in CSS so future pages can share the same visual language.</p>
+        </div>
+        <div class="reloop-stat-card">
+            <p class="reloop-stat-card__label">Shared UI</p>
+            <strong class="reloop-stat-card__value">Buttons, badges, inputs, tables</strong>
+            <p class="reloop-stat-card__copy">Delivered as reusable Razor partials and consistent component classes.</p>
+        </div>
+    </div>
+</section>
+
+<section class="reloop-section">
+    <div class="reloop-section__heading">
+        <p class="reloop-kicker">Core components</p>
+        <h2>Buttons and badges</h2>
+    </div>
+    <div class="reloop-sample-row">
+        <partial name="_UiButton" model="@primaryButton" />
+        <partial name="_UiButton" model="@secondaryButton" />
+        <partial name="_UiButton" model="@ghostButton" />
+        <partial name="_UiBadge" model="@successBadge" />
+        <partial name="_UiBadge" model="@warningBadge" />
+        <partial name="_UiBadge" model="@neutralBadge" />
+    </div>
+</section>
+
+<section class="reloop-section">
+    <div class="reloop-section__heading">
+        <p class="reloop-kicker">Forms</p>
+        <h2>Inputs and validation states</h2>
+    </div>
+
+    <div class="reloop-form-grid">
+        <partial name="_UiInput" model="@emailInput" />
+        <partial name="_UiInput" model="@categoryInput" />
+        <partial name="_UiInput" model="@pickupNotesInput" />
+        <partial name="_UiInput" model="@passwordInput" />
+    </div>
+</section>
+
+<section class="reloop-section">
+    <div class="reloop-section__heading">
+        <p class="reloop-kicker">Tables</p>
+        <h2>Reusable data display</h2>
+    </div>
+
+    <partial name="_UiTable" model="Model.SampleTable" />
+</section>
+
+<section class="reloop-section reloop-section--split">
+    <div class="reloop-card">
+        <div class="reloop-card__header">
+            <div>
+                <p class="reloop-card__eyebrow">Loading state</p>
+                <h3 class="reloop-card__title">Skeleton feedback</h3>
+            </div>
+        </div>
+        <div class="reloop-skeleton-grid" aria-hidden="true">
+            <div class="reloop-skeleton reloop-skeleton--title"></div>
+            <div class="reloop-skeleton reloop-skeleton--text"></div>
+            <div class="reloop-skeleton reloop-skeleton--text short"></div>
+            <div class="reloop-skeleton reloop-skeleton--block"></div>
+        </div>
+    </div>
+
+    <partial name="_UiState" model="@noRecordsState" />
+</section>
