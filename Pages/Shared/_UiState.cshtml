@@ -1,0 +1,16 @@
+@model ReLoop_Technologies_Web_App.Models.UiStateModel
+@{
+    var tone = string.IsNullOrWhiteSpace(Model.Tone) ? "neutral" : Model.Tone.Trim().ToLowerInvariant();
+}
+
+<section class="reloop-state reloop-state--@tone">
+    <div class="reloop-state__icon" aria-hidden="true">
+        <span></span>
+    </div>
+    <h3 class="reloop-state__title">@Model.Title</h3>
+    <p class="reloop-state__message">@Model.Message</p>
+    @if (!string.IsNullOrWhiteSpace(Model.ActionText) && !string.IsNullOrWhiteSpace(Model.ActionHref))
+    {
+        <a class="reloop-btn reloop-btn--primary" href="@Model.ActionHref">@Model.ActionText</a>
+    }
+</section>

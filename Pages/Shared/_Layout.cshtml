@@ -1,44 +1,99 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - ReLoop_Technologies_Web_App</title>
+    <title>@(ViewData["Title"] is string pageTitle && !string.IsNullOrWhiteSpace(pageTitle) ? $"{pageTitle} · ReLoop" : "ReLoop")</title>
+    <meta name="theme-color" content="#16A34A" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ReLoop_Technologies_Web_App.styles.css" asp-append-version="true" />
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">ReLoop_Technologies_Web_App</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+<body class="reloop-shell">
+    <div class="reloop-shell__backdrop" aria-hidden="true"></div>
+
+    <header class="reloop-topbar">
+        <div class="reloop-container reloop-topbar__inner">
+            <a class="brand-lockup" asp-page="/Index" aria-label="ReLoop home">
+                <span class="brand-lockup__mark" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" focusable="false" role="img">
+                        <defs>
+                            <linearGradient id="reloopMarkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#0f7a35" />
+                                <stop offset="100%" stop-color="#7ed957" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M16 11c-7 0-13 5.7-13 13s6 13 13 13c5.2 0 9.8-3 11.8-7.4l2.2-4.6 2.2 4.6C34.2 34 38.8 37 44 37c7 0 13-5.7 13-13s-6-13-13-13c-5.2 0-9.8 3-11.8 7.4L30 22l-2.2-4.6C25.8 14 21.2 11 16 11Z" fill="none" stroke="url(#reloopMarkGradient)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(-3 -1.5) scale(.72)" />
+                    </svg>
+                </span>
+                <span class="brand-lockup__copy">
+                    <span class="brand-lockup__name">ReLoop</span>
+                    <span class="brand-lockup__tag">Recycling Management System</span>
+                </span>
+            </a>
+
+            <partial name="_ShellNav" />
+
+            <div class="reloop-topbar__actions">
+                <button class="reloop-icon-button" type="button" aria-label="Notifications">
+                    <span aria-hidden="true">🔔</span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                    </ul>
+                <div class="reloop-avatar" aria-label="User profile">A</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="reloop-main">
+        <div class="reloop-container">
+            @RenderBody()
+        </div>
+    </main>
+
+    <footer class="reloop-footer">
+        <div class="reloop-container reloop-footer__inner">
+            <div class="reloop-footer__brand">
+                <a class="brand-lockup brand-lockup--footer" asp-page="/Index" aria-label="ReLoop home">
+                    <span class="brand-lockup__mark" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" focusable="false" role="img">
+                            <defs>
+                                <linearGradient id="reloopMarkGradientFooter" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#0f7a35" />
+                                    <stop offset="100%" stop-color="#7ed957" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M16 11c-7 0-13 5.7-13 13s6 13 13 13c5.2 0 9.8-3 11.8-7.4l2.2-4.6 2.2 4.6C34.2 34 38.8 37 44 37c7 0 13-5.7 13-13s-6-13-13-13c-5.2 0-9.8 3-11.8 7.4L30 22l-2.2-4.6C25.8 14 21.2 11 16 11Z" fill="none" stroke="url(#reloopMarkGradientFooter)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(-3 -1.5) scale(.72)" />
+                        </svg>
+                    </span>
+                    <span class="brand-lockup__copy">
+                        <span class="brand-lockup__name">ReLoop</span>
+                        <span class="brand-lockup__tag">Circular platform shell</span>
+                    </span>
+                </a>
+                <p class="reloop-footer__copy">
+                    Foundation layer for the ReLoop recycling experience. Designed to stay light, responsive, and reusable.
+                </p>
+            </div>
+
+            <div class="reloop-footer__links">
+                <div>
+                    <h2>Platform</h2>
+                    <a asp-page="/Index">Home</a>
+                    <a asp-page="/DesignSystem">Design System</a>
+                    <a href="#" aria-disabled="true">Dashboard</a>
+                </div>
+                <div>
+                    <h2>Company</h2>
+                    <a href="#" aria-disabled="true">About</a>
+                    <a href="#" aria-disabled="true">Contact</a>
+                    <a asp-page="/Privacy">Privacy</a>
+                </div>
+                <div>
+                    <h2>States</h2>
+                    <a href="#" aria-disabled="true">Loading</a>
+                    <a href="#" aria-disabled="true">Empty</a>
+                    <a href="#" aria-disabled="true">Validation</a>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - ReLoop_Technologies_Web_App - <a asp-area="" asp-page="/Privacy">Privacy</a>
         </div>
     </footer>
 

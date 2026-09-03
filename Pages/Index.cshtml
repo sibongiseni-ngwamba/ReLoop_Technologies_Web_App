@@ -1,10 +1,60 @@
-﻿@page
+@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Home";
+    var openDesignSystemButton = new UiButtonModel("Open design system", "/DesignSystem", "primary");
+    var viewPrivacyButton = new UiButtonModel("View privacy", "/Privacy", "secondary");
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="reloop-hero">
+    <div class="reloop-hero__copy">
+        <p class="reloop-kicker">Foundation ready</p>
+        <h1 class="reloop-hero__title">The ReLoop shell now uses a shared design system.</h1>
+        <p class="reloop-hero__text">
+            The default scaffold has been replaced with a reusable header, footer, buttons, badges, inputs, tables,
+            loading states, and empty states that match the wireframe direction.
+        </p>
+        <div class="reloop-action-row">
+            <partial name="_UiButton" model="@openDesignSystemButton" />
+            <partial name="_UiButton" model="@viewPrivacyButton" />
+        </div>
+    </div>
+
+    <div class="reloop-hero__panel">
+        <div class="reloop-stat-card">
+            <p class="reloop-stat-card__label">What changed</p>
+            <strong class="reloop-stat-card__value">Layout, tokens, reusable UI building blocks</strong>
+            <p class="reloop-stat-card__copy">Everything is now driven from one visual language, so later pages can move faster.</p>
+        </div>
+        <div class="reloop-stat-card">
+            <p class="reloop-stat-card__label">Next branch</p>
+            <strong class="reloop-stat-card__value">Landing page implementation</strong>
+            <p class="reloop-stat-card__copy">Issue 2 will slot the public landing page into this new structure.</p>
+        </div>
+    </div>
+</section>
+
+<section class="reloop-section">
+    <div class="reloop-section__heading">
+        <p class="reloop-kicker">Reusable pieces</p>
+        <h2>What this branch gives you</h2>
+    </div>
+
+    <div class="reloop-grid reloop-grid--3">
+        <article class="reloop-card">
+            <p class="reloop-card__eyebrow">Layout</p>
+            <h3 class="reloop-card__title">Brand-forward shell</h3>
+            <p class="reloop-card__description">A sticky top bar, responsive navigation, and a dark footer built to match the ReLoop identity.</p>
+        </article>
+        <article class="reloop-card">
+            <p class="reloop-card__eyebrow">Components</p>
+            <h3 class="reloop-card__title">Shared UI primitives</h3>
+            <p class="reloop-card__description">Buttons, badges, inputs, and tables now use one set of classes and Razor partials.</p>
+        </article>
+        <article class="reloop-card">
+            <p class="reloop-card__eyebrow">States</p>
+            <h3 class="reloop-card__title">Loading and empty views</h3>
+            <p class="reloop-card__description">Skeleton and empty-state treatments are in place so future pages can stay polished.</p>
+        </article>
+    </div>
+</section>

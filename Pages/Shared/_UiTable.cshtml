@@ -1,0 +1,61 @@
+@model ReLoop_Technologies_Web_App.Models.UiTableModel
+
+<section class="reloop-card reloop-table-card">
+    <div class="reloop-card__header">
+        <div>
+            <p class="reloop-card__eyebrow">Table</p>
+            <h3 class="reloop-card__title">@Model.Title</h3>
+        </div>
+    </div>
+
+    <div class="reloop-table-wrap">
+        <table class="reloop-table">
+            <thead>
+                <tr>
+                    @foreach (var column in Model.Columns)
+                    {
+                        <th class="@(column.Align is null ? string.Empty : $"text-{column.Align}")" style="@(column.Width is null ? null : $"width: {column.Width}")">@column.Header</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Rows.Count == 0)
+                {
+                    <tr>
+                        <td colspan="@Model.Columns.Count">
+                            <div class="reloop-table__empty">
+                                <h4>@Model.EmptyTitle</h4>
+                                <p>@Model.EmptyMessage</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var row in Model.Rows)
+                    {
+                        <tr>
+                            @foreach (var cell in row.Cells)
+                            {
+                                <td class="@(cell.Align is null ? string.Empty : $"text-{cell.Align}")">
+                                    @if (!string.IsNullOrWhiteSpace(cell.BadgeTone))
+                                    {
+                                        <span class="reloop-badge reloop-badge--@cell.BadgeTone">@cell.Text</span>
+                                    }
+                                    else if (cell.Strong)
+                                    {
+                                        <strong>@cell.Text</strong>
+                                    }
+                                    else
+                                    {
+                                        @cell.Text
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
