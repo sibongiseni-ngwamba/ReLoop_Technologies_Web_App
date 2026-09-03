@@ -1,0 +1,62 @@
+@page
+@{
+    ViewData["Title"] = "Schedule Pickup";
+}
+
+<section class="app-page">
+    <div class="content-grid content-grid--wide">
+        <form class="panel pickup-form js-api-form" data-endpoint="/api/pickups" data-success="Collection request submitted." novalidate>
+            <h1>Schedule Doorstep Collection</h1>
+            <p>Schedule a collection slot in seconds. Local logistics partners arrive directly at your location.</p>
+
+            <label class="app-field">
+                <span>Home Address</span>
+                <input name="homeAddress" placeholder="e.g. 452 Eco Circular Ave, Suite 3B" required minlength="8" />
+                <small data-error-for="homeAddress"></small>
+            </label>
+
+            <div class="form-two">
+                <label class="app-field">
+                    <span>Preferred Date</span>
+                    <input name="preferredDate" type="date" required />
+                    <small data-error-for="preferredDate"></small>
+                </label>
+                <label class="app-field">
+                    <span>Preferred Time Window</span>
+                    <select name="preferredTimeWindow" required>
+                        <option value="">Select a time slot</option>
+                        <option>09:00 AM - 12:00 PM</option>
+                        <option>12:00 PM - 03:00 PM</option>
+                        <option>03:00 PM - 06:00 PM</option>
+                    </select>
+                    <small data-error-for="preferredTimeWindow"></small>
+                </label>
+            </div>
+
+            <fieldset class="category-picker">
+                <legend>Waste Classification Category</legend>
+                <label><input name="wasteCategory" type="radio" value="Recyclables" checked /> <span>Recyclables</span></label>
+                <label><input name="wasteCategory" type="radio" value="Organic" /> <span>Organic Compost</span></label>
+                <label><input name="wasteCategory" type="radio" value="E-waste" /> <span>Electronic waste</span></label>
+            </fieldset>
+
+            <label class="app-field">
+                <span>Additional Notes</span>
+                <textarea name="notes" placeholder="Mention gate code instructions, bulky boxes, or glass handling details here..."></textarea>
+            </label>
+
+            <button class="reloop-btn reloop-btn--primary reloop-btn--full" type="submit">Submit Collection Request</button>
+            <p class="form-status" aria-live="polite"></p>
+        </form>
+
+        <aside class="panel">
+            <h2>My Upcoming Pickups</h2>
+            <div class="pickup-ticket">
+                <span class="reloop-badge reloop-badge--info">Scheduled</span>
+                <strong>Recyclables (Paper & Plastics)</strong>
+                <span>12 May 2025, 09:00 AM - 12:00 PM</span>
+            </div>
+            <div class="notice-card"><strong>Recycling Loop Guidance</strong><span>Wash and separate contaminants before dispatching glass or metal jars.</span></div>
+        </aside>
+    </div>
+</section>

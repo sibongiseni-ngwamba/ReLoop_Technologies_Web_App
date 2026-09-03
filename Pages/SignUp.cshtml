@@ -1,0 +1,42 @@
+@page
+@{
+    ViewData["Title"] = "Sign Up";
+}
+
+<section class="auth-page">
+    <form class="auth-card js-api-form" data-endpoint="/api/auth/signup" data-success="Account created. Taking you to your dashboard..." data-redirect="/Dashboard" novalidate>
+        <div class="auth-card__heading">
+            <h1>Create your ReLoop account</h1>
+            <p>Start tracking scans, pickups, and reward points today.</p>
+        </div>
+
+        <label class="app-field">
+            <span>Full name</span>
+            <input name="fullName" placeholder="Alex Rivera" required />
+            <small data-error-for="fullName"></small>
+        </label>
+
+        <label class="app-field">
+            <span>Email</span>
+            <input name="email" type="email" placeholder="alex@example.com" required />
+            <small data-error-for="email"></small>
+        </label>
+
+        <div class="form-two">
+            <label class="app-field">
+                <span>Password</span>
+                <input name="password" type="password" minlength="6" required />
+                <small data-error-for="password"></small>
+            </label>
+            <label class="app-field">
+                <span>Confirm password</span>
+                <input name="confirmPassword" type="password" minlength="6" required />
+                <small data-error-for="confirmPassword"></small>
+            </label>
+        </div>
+
+        <button class="reloop-btn reloop-btn--primary reloop-btn--full" type="submit">Create account</button>
+        <p class="form-status" aria-live="polite"></p>
+        <p class="auth-switch">Already registered? <a asp-page="/Login">Login</a></p>
+    </form>
+</section>

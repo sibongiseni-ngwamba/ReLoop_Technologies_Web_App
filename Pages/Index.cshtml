@@ -1,60 +1,47 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home";
-    var openDesignSystemButton = new UiButtonModel("Open design system", "/DesignSystem", "primary");
-    var viewPrivacyButton = new UiButtonModel("View privacy", "/Privacy", "secondary");
+    ViewData["Title"] = "Smart recycling, made simple";
 }
 
-<section class="reloop-hero">
-    <div class="reloop-hero__copy">
-        <p class="reloop-kicker">Foundation ready</p>
-        <h1 class="reloop-hero__title">The ReLoop shell now uses a shared design system.</h1>
-        <p class="reloop-hero__text">
-            The default scaffold has been replaced with a reusable header, footer, buttons, badges, inputs, tables,
-            loading states, and empty states that match the wireframe direction.
-        </p>
+<section class="landing-hero">
+    <div class="landing-hero__copy">
+        <span class="landing-eyebrow">♻ Recycling Management System</span>
+        <h1>Smart Waste Tracking,<br />Beautiful Environmental Impact.</h1>
+        <p>Scan waste instantly to identify recyclables, schedule door-to-door pickups, earn reward points, and track your true circular contribution today.</p>
         <div class="reloop-action-row">
-            <partial name="_UiButton" model="@openDesignSystemButton" />
-            <partial name="_UiButton" model="@viewPrivacyButton" />
+            <a class="reloop-btn reloop-btn--primary" asp-page="/SignUp">Get Started Free <span aria-hidden="true">→</span></a>
+            <a class="reloop-btn reloop-btn--secondary" href="#how-it-works">Learn More</a>
         </div>
     </div>
-
-    <div class="reloop-hero__panel">
-        <div class="reloop-stat-card">
-            <p class="reloop-stat-card__label">What changed</p>
-            <strong class="reloop-stat-card__value">Layout, tokens, reusable UI building blocks</strong>
-            <p class="reloop-stat-card__copy">Everything is now driven from one visual language, so later pages can move faster.</p>
-        </div>
-        <div class="reloop-stat-card">
-            <p class="reloop-stat-card__label">Next branch</p>
-            <strong class="reloop-stat-card__value">Landing page implementation</strong>
-            <p class="reloop-stat-card__copy">Issue 2 will slot the public landing page into this new structure.</p>
-        </div>
+    <div class="landing-hero__visual" role="img" aria-label="Clean recycling collection table with glass and plastic containers">
+        <div class="landing-visual__sun"></div><div class="landing-visual__window"></div>
+        <div class="landing-visual__shelf"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="landing-visual__plant">◒</div><div class="landing-visual__table"></div>
+        <div class="landing-visual__caption">A cleaner loop starts with one scan.</div>
     </div>
 </section>
 
-<section class="reloop-section">
-    <div class="reloop-section__heading">
-        <p class="reloop-kicker">Reusable pieces</p>
-        <h2>What this branch gives you</h2>
-    </div>
+<section class="landing-stats" aria-label="ReLoop impact statistics">
+    <div><strong>1.2M+</strong><span>Items Properly Recycled</span></div><div><strong>45,000 kg</strong><span>Landfill Waste Diverted</span></div>
+    <div><strong>15,000+</strong><span>Active Circular Citizens</span></div><div><strong>120k+</strong><span>Eco Reward Points Issued</span></div>
+</section>
 
-    <div class="reloop-grid reloop-grid--3">
-        <article class="reloop-card">
-            <p class="reloop-card__eyebrow">Layout</p>
-            <h3 class="reloop-card__title">Brand-forward shell</h3>
-            <p class="reloop-card__description">A sticky top bar, responsive navigation, and a dark footer built to match the ReLoop identity.</p>
-        </article>
-        <article class="reloop-card">
-            <p class="reloop-card__eyebrow">Components</p>
-            <h3 class="reloop-card__title">Shared UI primitives</h3>
-            <p class="reloop-card__description">Buttons, badges, inputs, and tables now use one set of classes and Razor partials.</p>
-        </article>
-        <article class="reloop-card">
-            <p class="reloop-card__eyebrow">States</p>
-            <h3 class="reloop-card__title">Loading and empty views</h3>
-            <p class="reloop-card__description">Skeleton and empty-state treatments are in place so future pages can stay polished.</p>
-        </article>
+<section class="landing-section landing-section--muted">
+    <div class="landing-heading"><span class="landing-eyebrow">The ReLoop difference</span><h2>Designed for Simplicity and Impact</h2><p>An ecosystem built to make recycling secondary nature, providing you with real-time feedback and incentives.</p></div>
+    <div class="landing-features">
+        <article class="landing-feature"><div class="landing-feature__icon landing-feature__icon--green">⌾</div><h3>Scan &amp; Identify</h3><p>Point your camera at any waste item. Our AI instantly classifies it as recyclable, organic, glass, or landfill.</p></article>
+        <article class="landing-feature"><div class="landing-feature__icon landing-feature__icon--blue">▣</div><h3>Schedule Pickups</h3><p>Book a convenient collection slot in seconds. Local collectors arrive right at your doorstep.</p></article>
+        <article class="landing-feature"><div class="landing-feature__icon landing-feature__icon--orange">✦</div><h3>Earn Reward Points</h3><p>Recycle verified items to rack up eco-points. Redeem them for gift cards, partner discounts, or tree planting.</p></article>
+        <article class="landing-feature"><div class="landing-feature__icon landing-feature__icon--pink">☆</div><h3>Track Circular Progress</h3><p>View comprehensive dashboard analytics detailing your carbon footprint mitigation and circular metrics.</p></article>
+    </div>
+</section>
+
+<section class="landing-section" id="how-it-works">
+    <div class="landing-heading"><span class="landing-eyebrow">Your everyday loop</span><h2>How ReLoop Works</h2><p>Three simple steps to transition from wasteful disposal to premium smart circularity.</p></div>
+    <div class="landing-steps">
+        <article><strong>01</strong><h3>Capture or Scan</h3><p>Scan the waste object via the ReLoop app to automatically log classification and verify standard weight.</p></article>
+        <article><strong>02</strong><h3>Schedule Pickup</h3><p>Consolidate items and book a pickup date. Our local eco-partners handle transport directly.</p></article>
+        <article><strong>03</strong><h3>Claim Rewards</h3><p>Receive instant points as soon as materials are verified at local processing centers.</p></article>
     </div>
 </section>

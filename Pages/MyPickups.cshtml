@@ -1,0 +1,26 @@
+@page
+@{
+    ViewData["Title"] = "My Pickups";
+}
+
+<section class="app-page js-pickups">
+    <div class="page-heading">
+        <h1>Recycling Collection Ledger</h1>
+        <p>Track scheduled collections, active logistics processing, and historical reward summaries.</p>
+    </div>
+
+    <div class="tabs" role="tablist">
+        <button class="tab is-active" type="button" data-status="All">All</button>
+        <button class="tab" type="button" data-status="Scheduled">Active & Upcoming</button>
+        <button class="tab" type="button" data-status="Completed">Collection History</button>
+        <button class="tab" type="button" data-status="Cancelled">Cancelled</button>
+    </div>
+
+    <section class="panel table-panel">
+        <table class="app-table">
+            <thead><tr><th>ID</th><th>Date</th><th>Collection Address</th><th>Waste Type</th><th>Weight</th><th>Status</th></tr></thead>
+            <tbody data-pickups-table></tbody>
+        </table>
+        <p class="empty-state" data-pickups-empty hidden>No pickups match this filter yet.</p>
+    </section>
+</section>
