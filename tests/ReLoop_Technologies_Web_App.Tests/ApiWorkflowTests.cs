@@ -56,4 +56,55 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
         Assert.Contains("Total Active Users", body);
         Assert.Contains("Plastic", body);
     }
+
+    [Fact]
+    public async Task Profile_can_be_loaded_and_updated()
+    {
+        var current = await _client.GetStringAsync("/api/profile");
+        Assert.Contains("Alex Rivera", current);
+
+        var update = await _client.PutAsJsonAsync("/api/profile", new
+        {
+            fullName = "Alex Green",
+            email = "alex.green@example.com",
+            address = "12 Circular Avenue",
+            preferredCategory = "E-waste"
+        });
+        var body = await update.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        Assert.Contains("Alex Green", body);
+        Assert.Contains("E-waste", body);
+    }
+
+    [Fact]
+    public async Task Contact_form_persists_message()
+    {
+        var response = await _client.PostAsJsonAsync("/api/contact", new
+        {
+            fullName = "Naledi Mokoena",
+            email = "naledi@example.com",
+            subject = "Partner collection",
+            message = "Please contact me about a recurring school collection."
+        });
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Contains("New", body);
+    }
+
+    [Fact]
+    public async Task Logout_endpoint_clears_session()
+    {
+        var login = await _client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email = "alex@example.com",
+            password = "password1",
+            keepSignedIn = true
+        });
+        var logout = await _client.PostAsync("/api/auth/logout", null);
+
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, logout.StatusCode);
+    }
 }

@@ -24,12 +24,80 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
             Email = email,
             PasswordHash = $"demo-{password.Length}-chars",
             Role = email.Contains("admin", StringComparison.OrdinalIgnoreCase) ? "Admin" : "Member",
+            Address = "452 Eco Circular Ave, Suite 3B",
+            PreferredCategory = "Recyclables",
             CreatedAt = DateTimeOffset.UtcNow
         };
 
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync();
         return user;
+    }
+
+    public async Task<UserAccount?> GetUserByEmailAsync(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return await GetDemoUserAsync();
+        }
+
+        return await dbContext.Users.FirstOrDefaultAsync(user => user.Email == email);
+    }
+
+    public async Task<ProfileDto> GetProfileAsync(string? email)
+    {
+        var user = await GetUserByEmailAsync(email) ?? await GetDemoUserAsync();
+        var scanCount = await dbContext.ScanRecords.CountAsync(scan => scan.UserAccountId == user.Id);
+        var pickupCount = await dbContext.Pickups.CountAsync(pickup => pickup.UserAccountId == user.Id);
+
+        return new ProfileDto(
+            user.FullName,
+            user.Email,
+            user.Role,
+            user.Address,
+            user.PreferredCategory,
+            user.RewardPoints,
+            scanCount,
+            pickupCount);
+    }
+
+    public async Task<ProfileDto> UpdateProfileAsync(string? currentEmail, ProfileUpdateRequest request)
+    {
+        var user = await GetUserByEmailAsync(currentEmail) ?? await GetDemoUserAsync();
+        user.FullName = request.FullName;
+        user.Email = request.Email;
+        user.Address = request.Address;
+        user.PreferredCategory = request.PreferredCategory;
+
+        dbContext.ActivityLogs.Add(new ActivityLog
+        {
+            Id = Guid.NewGuid(),
+            UserAccountId = user.Id,
+            Title = "Profile updated",
+            Detail = "Account and recycling preferences were refreshed",
+            Tone = "info",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync();
+        return await GetProfileAsync(user.Email);
+    }
+
+    public async Task<ContactMessage> CreateContactMessageAsync(ContactRequest request)
+    {
+        var message = new ContactMessage
+        {
+            Id = Guid.NewGuid(),
+            FullName = request.FullName,
+            Email = request.Email,
+            Subject = request.Subject,
+            Message = request.Message,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.ContactMessages.Add(message);
+        await dbContext.SaveChangesAsync();
+        return message;
     }
 
     public async Task<DashboardDto> GetDashboardAsync()

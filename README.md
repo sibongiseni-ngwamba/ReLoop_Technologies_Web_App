@@ -31,6 +31,7 @@ ReLoop is a recycling management web application built with ASP.NET Core Razor P
 - `issue-3-9`: authentication, dashboard, scan, pickup, admin, and API work.
 - `issue-10-azure-sql-ef-core`: EF Core SQL Server/Azure SQL persistence.
 - `issue-11-e2e-testing-qa`: automated tests, QA checklist, and CI workflow.
+- `complete-reloop-app`: combined final branch with all implemented pages, APIs, SQL persistence, tests, README, and wireframes.
 
 ## Run Locally
 

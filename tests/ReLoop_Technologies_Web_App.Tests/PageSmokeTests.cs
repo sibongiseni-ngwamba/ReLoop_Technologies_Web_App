@@ -15,6 +15,10 @@ public sealed class PageSmokeTests(ReLoopWebApplicationFactory factory) : IClass
     [InlineData("/SchedulePickup")]
     [InlineData("/MyPickups")]
     [InlineData("/Admin")]
+    [InlineData("/Profile")]
+    [InlineData("/Logout")]
+    [InlineData("/About")]
+    [InlineData("/Contact")]
     public async Task Main_pages_render_successfully(string path)
     {
         var response = await _client.GetAsync(path);

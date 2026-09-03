@@ -1,0 +1,16 @@
+@page
+@{
+    ViewData["Title"] = "Logout";
+}
+
+<section class="auth-page">
+    <div class="auth-card logout-card">
+        <div class="auth-card__heading">
+            <h1>Logout</h1>
+            <p>End your ReLoop session on this device.</p>
+        </div>
+        <button class="reloop-btn reloop-btn--primary reloop-btn--full js-logout" type="button">Logout now</button>
+        <a class="reloop-btn reloop-btn--secondary reloop-btn--full" asp-page="/Dashboard">Stay signed in</a>
+        <p class="form-status" aria-live="polite"></p>
+    </div>
+</section>

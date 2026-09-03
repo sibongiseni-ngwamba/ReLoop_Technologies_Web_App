@@ -35,10 +35,11 @@
             <partial name="_ShellNav" />
 
             <div class="reloop-topbar__actions">
-                <button class="reloop-icon-button" type="button" aria-label="Notifications">
+                <a class="reloop-icon-button" asp-page="/Dashboard" aria-label="Notifications">
                     <span aria-hidden="true">🔔</span>
-                </button>
-                <div class="reloop-avatar" aria-label="User profile">A</div>
+                </a>
+                <a class="reloop-avatar" asp-page="/Profile" aria-label="User profile">A</a>
+                <a class="reloop-btn reloop-btn--secondary reloop-topbar__login" asp-page="/Login">Login</a>
             </div>
         </div>
     </header>
@@ -66,11 +67,11 @@
                     </span>
                     <span class="brand-lockup__copy">
                         <span class="brand-lockup__name">ReLoop</span>
-                        <span class="brand-lockup__tag">Circular platform shell</span>
+                        <span class="brand-lockup__tag">Circularity platform</span>
                     </span>
                 </a>
                 <p class="reloop-footer__copy">
-                    Foundation layer for the ReLoop recycling experience. Designed to stay light, responsive, and reusable.
+                    Making circular recycling easier to scan, schedule, verify, and reward.
                 </p>
             </div>
 
@@ -78,20 +79,21 @@
                 <div>
                     <h2>Platform</h2>
                     <a asp-page="/Index">Home</a>
-                    <a asp-page="/DesignSystem">Design System</a>
-                    <a href="#" aria-disabled="true">Dashboard</a>
+                    <a asp-page="/Dashboard">Dashboard</a>
+                    <a asp-page="/ScanWaste">Scan Waste</a>
+                    <a asp-page="/SchedulePickup">Schedule Pickup</a>
                 </div>
                 <div>
                     <h2>Company</h2>
-                    <a href="#" aria-disabled="true">About</a>
-                    <a href="#" aria-disabled="true">Contact</a>
+                    <a asp-page="/About">About</a>
+                    <a asp-page="/Contact">Contact</a>
                     <a asp-page="/Privacy">Privacy</a>
                 </div>
                 <div>
-                    <h2>States</h2>
-                    <a href="#" aria-disabled="true">Loading</a>
-                    <a href="#" aria-disabled="true">Empty</a>
-                    <a href="#" aria-disabled="true">Validation</a>
+                    <h2>Account</h2>
+                    <a asp-page="/Profile">Profile</a>
+                    <a asp-page="/MyPickups">My Pickups</a>
+                    <a asp-page="/Logout">Logout</a>
                 </div>
             </div>
         </div>

@@ -740,3 +740,20 @@ select.reloop-field__control {
 .legend-dot--success { background:var(--reloop-primary-dark); }.legend-dot--info { background:var(--reloop-info); }.legend-dot--warning { background:var(--reloop-warning); }.legend-dot--danger { background:var(--reloop-danger); }
 @media (max-width:1199.98px) { .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.content-grid,.content-grid--wide,.admin-layout,.scan-result { grid-template-columns:1fr; }.admin-sidebar { position:static; } }
 @media (max-width:767.98px) { .auth-card,.panel { padding:1.1rem; }.form-two,.metric-grid,.action-grid,.category-picker { grid-template-columns:1fr; }.app-page { padding-top:1.5rem; }.scan-result dl { grid-template-columns:1fr; }.scan-result dd { text-align:left; } }
+
+.reloop-avatar { text-decoration:none; }
+.reloop-topbar__login { min-height:2.5rem; padding:.62rem 1rem; }
+.profile-form { display:grid; gap:1rem; }
+.profile-summary [data-profile-summary] { display:grid; gap:.8rem; margin-bottom:1rem; }
+.profile-stat { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem; border:1px solid var(--reloop-border); border-radius:.8rem; background:#fbfcfb; }
+.profile-stat span { color:var(--reloop-text-muted); font-weight:700; }
+.profile-stat strong { color:var(--reloop-primary-dark); font-size:1.25rem; }
+.logout-card { max-width:34rem; }
+.about-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; margin-bottom:1.5rem; }
+.about-grid p,.about-band p { color:var(--reloop-text-muted); line-height:1.7; }
+.about-band { display:grid; gap:1rem; justify-items:start; background:linear-gradient(135deg,#ffffff 0%,#edf8ee 100%); }
+.contact-panel dl { display:grid; gap:.9rem; margin:0; }
+.contact-panel dt { color:var(--reloop-primary-dark); font-weight:900; }
+.contact-panel dd { margin:0; color:var(--reloop-text-muted); }
+@media (max-width:1199.98px) { .about-grid { grid-template-columns:1fr; } }
+@media (max-width:767.98px) { .reloop-topbar__login { display:none; }.profile-stat { align-items:flex-start; flex-direction:column; } }

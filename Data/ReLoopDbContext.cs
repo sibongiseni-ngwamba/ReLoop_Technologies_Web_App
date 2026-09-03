@@ -10,6 +10,7 @@ public sealed class ReLoopDbContext(DbContextOptions<ReLoopDbContext> options) :
     public DbSet<ScanRecord> ScanRecords => Set<ScanRecord>();
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
     public DbSet<RewardLedgerEntry> RewardLedger => Set<RewardLedgerEntry>();
+    public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -20,7 +21,20 @@ public sealed class ReLoopDbContext(DbContextOptions<ReLoopDbContext> options) :
             entity.Property(user => user.Email).HasMaxLength(180).IsRequired();
             entity.Property(user => user.PasswordHash).HasMaxLength(256).IsRequired();
             entity.Property(user => user.Role).HasMaxLength(40).IsRequired();
+            entity.Property(user => user.Address).HasMaxLength(240).IsRequired();
+            entity.Property(user => user.PreferredCategory).HasMaxLength(80).IsRequired();
             entity.HasIndex(user => user.Email).IsUnique();
+        });
+
+        modelBuilder.Entity<ContactMessage>(entity =>
+        {
+            entity.HasKey(message => message.Id);
+            entity.Property(message => message.FullName).HasMaxLength(120).IsRequired();
+            entity.Property(message => message.Email).HasMaxLength(180).IsRequired();
+            entity.Property(message => message.Subject).HasMaxLength(140).IsRequired();
+            entity.Property(message => message.Message).HasMaxLength(1200).IsRequired();
+            entity.Property(message => message.Status).HasMaxLength(40).IsRequired();
+            entity.HasIndex(message => new { message.Status, message.CreatedAt });
         });
 
         modelBuilder.Entity<Pickup>(entity =>
@@ -88,8 +102,8 @@ public sealed class ReLoopDbContext(DbContextOptions<ReLoopDbContext> options) :
         var adminId = new Guid("2a090ea4-dcf2-4327-a8b7-e2457092658e");
 
         modelBuilder.Entity<UserAccount>().HasData(
-            new UserAccount { Id = userId, FullName = "Alex Rivera", Email = "alex@example.com", PasswordHash = "demo-password-only", Role = "Member", RewardPoints = 1200, CreatedAt = new DateTimeOffset(2025, 5, 1, 8, 0, 0, TimeSpan.Zero) },
-            new UserAccount { Id = adminId, FullName = "Mpho Admin", Email = "admin@reloop.co.za", PasswordHash = "demo-password-only", Role = "Admin", RewardPoints = 0, CreatedAt = new DateTimeOffset(2025, 5, 1, 8, 0, 0, TimeSpan.Zero) });
+            new UserAccount { Id = userId, FullName = "Alex Rivera", Email = "alex@example.com", PasswordHash = "demo-password-only", Role = "Member", Address = "452 Eco Circular Ave, Suite 3B", PreferredCategory = "Recyclables", RewardPoints = 1200, CreatedAt = new DateTimeOffset(2025, 5, 1, 8, 0, 0, TimeSpan.Zero) },
+            new UserAccount { Id = adminId, FullName = "Mpho Admin", Email = "admin@reloop.co.za", PasswordHash = "demo-password-only", Role = "Admin", Address = "20 Circularity House, Johannesburg", PreferredCategory = "Municipal Reporting", RewardPoints = 0, CreatedAt = new DateTimeOffset(2025, 5, 1, 8, 0, 0, TimeSpan.Zero) });
 
         modelBuilder.Entity<Pickup>().HasData(
             new Pickup { Id = new Guid("b5a53cb8-a41a-4b22-b541-d775f4f0b2d2"), UserAccountId = userId, ReferenceNumber = "#LP-9082", ScheduledFor = new DateTimeOffset(2025, 5, 12, 9, 0, 0, TimeSpan.Zero), Address = "452 Eco Circular Ave, Suite 3B", WasteType = "Recyclables", EstimatedWeightKg = null, Status = "Scheduled", Notes = "Paper and plastics", CreatedAt = new DateTimeOffset(2025, 5, 9, 12, 0, 0, TimeSpan.Zero) },
