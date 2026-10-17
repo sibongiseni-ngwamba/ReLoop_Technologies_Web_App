@@ -12,6 +12,10 @@
     <Content Remove="tests\**" />
     <EmbeddedResource Remove="tests\**" />
     <None Remove="tests\**" />
+    <Compile Remove="tools\FirestoreDemoSeed\**\*.cs" />
+    <Content Remove="tools\FirestoreDemoSeed\**" />
+    <EmbeddedResource Remove="tools\FirestoreDemoSeed\**" />
+    <None Remove="tools\FirestoreDemoSeed\**" />
   </ItemGroup>
 
   <ItemGroup>

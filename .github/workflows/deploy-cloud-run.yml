@@ -1,0 +1,86 @@
+name: Deploy ReLoop to Cloud Run
+
+on:
+  push:
+    branches:
+      - all-updates
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore tests/ReLoop_Technologies_Web_App.Tests/ReLoop_Technologies_Web_App.Tests.csproj
+
+      - name: Test
+        run: dotnet test tests/ReLoop_Technologies_Web_App.Tests/ReLoop_Technologies_Web_App.Tests.csproj --configuration Release
+
+      - name: Build demo seed utility
+        run: dotnet build tools/FirestoreDemoSeed/FirestoreDemoSeed.csproj --configuration Release
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify deployment configuration
+        env:
+          WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          RUNTIME_SERVICE_ACCOUNT: ${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
+          REGION: ${{ vars.GCP_REGION }}
+          SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE }}
+          FIREBASE_WEB_API_KEY: ${{ vars.FIREBASE_WEB_API_KEY }}
+          FIREBASE_WEB_APP_ID: ${{ vars.FIREBASE_WEB_APP_ID }}
+          FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
+        run: |
+          for name in WORKLOAD_IDENTITY_PROVIDER DEPLOY_SERVICE_ACCOUNT RUNTIME_SERVICE_ACCOUNT REGION SERVICE_NAME FIREBASE_WEB_API_KEY FIREBASE_WEB_APP_ID FIREBASE_AUTH_DOMAIN; do
+            if [ -z "${!name}" ]; then
+              echo "Required GitHub Actions variable $name is not set." >&2
+              exit 1
+            fi
+          done
+
+      - name: Authenticate to Google Cloud with GitHub OIDC
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ vars.CLOUD_RUN_SERVICE }}
+          project_id: relooptechnologies-2eda2
+          region: ${{ vars.GCP_REGION }}
+          source: .
+          env_vars: |-
+            ASPNETCORE_ENVIRONMENT=Production
+            ASPNETCORE_HTTP_PORTS=8080
+            Firebase__ProjectId=relooptechnologies-2eda2
+            Firebase__DatabaseId=(default)
+            Firebase__WebApiKey=${{ vars.FIREBASE_WEB_API_KEY }}
+            Firebase__WebAppId=${{ vars.FIREBASE_WEB_APP_ID }}
+            Firebase__AuthDomain=${{ vars.FIREBASE_AUTH_DOMAIN }}
+          flags: --allow-unauthenticated --service-account=${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
+
+      - name: Show deployed service URL
+        run: echo "Deployed to ${{ steps.deploy.outputs.url }}"

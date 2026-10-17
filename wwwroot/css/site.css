@@ -668,6 +668,8 @@ select.reloop-field__control {
 .app-field { display:grid; gap:.5rem; font-weight:700; }
 .app-field span { display:flex; justify-content:space-between; gap:1rem; }
 .app-field a,.auth-switch a { color:var(--reloop-primary-dark); font-weight:800; text-decoration:none; }
+.auth-link-button { border:0; padding:0; background:transparent; color:var(--reloop-primary-dark); font:inherit; font-weight:800; text-decoration:underline; cursor:pointer; }
+.auth-link-button:disabled { opacity:.65; cursor:wait; }
 .app-field input,.app-field textarea,.app-field select { min-height:3.35rem; border:1px solid var(--reloop-border-strong); border-radius:.85rem; padding:.85rem 1rem; background:#fff; color:var(--reloop-text); }
 .app-field textarea { min-height:8rem; resize:vertical; }
 .app-field input:focus,.app-field textarea:focus,.app-field select:focus { outline:none; border-color:var(--reloop-primary); box-shadow:0 0 0 4px var(--reloop-primary-ring); }
