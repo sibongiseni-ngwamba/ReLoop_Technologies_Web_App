@@ -1,7 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.EntityFrameworkCore;
+using Google.Api.Gax;
+using Google.Cloud.Firestore;
 using ReLoop_Technologies_Web_App.Data;
 using ReLoop_Technologies_Web_App.Models;
 using ReLoop_Technologies_Web_App.Services;
@@ -48,9 +49,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Events.OnValidatePrincipal = async context =>
         {
             var store = context.HttpContext.RequestServices.GetRequiredService<ReLoopStore>();
-            var email = context.Principal?.FindFirstValue(ClaimTypes.Email);
+            var uid = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
             var role = context.Principal?.FindFirstValue(ClaimTypes.Role);
-            if (!await store.IsSessionValidAsync(email, role))
+            if (!await store.IsSessionValidAsync(uid, role))
             {
                 context.RejectPrincipal();
                 await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -58,12 +59,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             }
         };
     });
-var connectionString = builder.Configuration.GetConnectionString("ReLoopDatabase");
-if (string.IsNullOrWhiteSpace(connectionString) && !builder.Environment.IsEnvironment("Testing"))
+var firebaseProjectId = builder.Configuration["Firebase:ProjectId"];
+var firestoreDatabaseId = builder.Configuration["Firebase:DatabaseId"] ?? "(default)";
+if (string.IsNullOrWhiteSpace(firebaseProjectId))
 {
-    throw new InvalidOperationException("Configure ConnectionStrings:ReLoopDatabase using user-secrets or the ConnectionStrings__ReLoopDatabase environment variable.");
+    throw new InvalidOperationException("Configure Firebase:ProjectId for the shared ReLoop Firebase project.");
 }
-builder.Services.AddDbContext<ReLoopDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddSingleton(_ => new FirestoreDbBuilder { ProjectId = firebaseProjectId, DatabaseId = firestoreDatabaseId, EmulatorDetection = EmulatorDetection.EmulatorOrProduction }.Build());
+builder.Services.AddSingleton<IReLoopDocumentStore, FirestoreDocumentStore>();
+builder.Services.AddSingleton<IFirebaseIdentityService>(_ => new FirebaseIdentityService(firebaseProjectId));
 builder.Services.AddScoped<ReLoopStore>();
 builder.Services.AddScoped<AdminManagementService>();
 builder.Services.AddScoped<MemberServices>();

@@ -1,3 +1,9 @@
+@{
+    var signedInName = User.Identity?.Name?.Trim();
+    var avatarInitials = string.IsNullOrWhiteSpace(signedInName)
+        ? "U"
+        : string.Concat(signedInName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,7 +47,7 @@
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     <a class="reloop-icon-button" asp-page="/Dashboard" aria-label="Open dashboard"><span aria-hidden="true">⌂</span></a>
-                    <a class="reloop-avatar" asp-page="/Profile" aria-label="User profile">@User.Identity.Name?.Substring(0, 1).ToUpperInvariant()</a>
+                    <a class="reloop-avatar" asp-page="/Profile" aria-label="Profile for @signedInName" title="@signedInName">@avatarInitials</a>
                 }
                 else
                 {
@@ -120,6 +126,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script type="module" src="~/js/firebase-auth.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
