@@ -71,7 +71,7 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
         var update = await _client.PutAsJsonAsync("/api/profile", new
         {
             fullName = "Alex Green",
-            email = "alex.green@example.com",
+            email = "alex@example.com",
             address = "12 Circular Avenue",
             preferredCategory = "E-waste"
         });

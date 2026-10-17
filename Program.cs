@@ -31,10 +31,22 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Login";
         options.LogoutPath = "/Logout";
         options.AccessDeniedPath = "/Login";
+        options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api")) { context.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; }
+            context.Response.Redirect(context.RedirectUri); return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api")) { context.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
+            context.Response.Redirect(context.RedirectUri); return Task.CompletedTask;
+        };
     });
 builder.Services.AddDbContext<ReLoopDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ReLoopDatabase")));
 builder.Services.AddScoped<ReLoopStore>();
+builder.Services.AddScoped<AdminManagementService>();
 
 var app = builder.Build();
 
@@ -64,7 +76,8 @@ app.MapPost("/api/auth/login", async (AuthRequest request, ReLoopStore store, Ht
         return Results.ValidationProblem(errors);
     }
 
-    var user = await store.FindOrCreateUserAsync("Alex Rivera", request.Email, request.Password);
+    var user = await store.AuthenticateAsync(request.Email, request.Password);
+    if (user is null) return Results.Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Invalid email or password");
     await SignInUserAsync(httpContext, user.FullName, user.Email, user.Role, request.KeepSignedIn);
     return Results.Ok(new { user = user.FullName, role = user.Role });
 }).WithTags("Authentication");
@@ -77,7 +90,8 @@ app.MapPost("/api/auth/signup", async (SignUpRequest request, ReLoopStore store,
         return Results.ValidationProblem(errors);
     }
 
-    var user = await store.FindOrCreateUserAsync(request.FullName, request.Email, request.Password);
+    var user = await store.CreateUserAsync(request.FullName, request.Email, request.Password);
+    if (user is null) return Results.Conflict(new { title = "An account already exists for this email.", errors = new Dictionary<string, string[]> { ["email"] = ["Use another email or sign in instead."] } });
     await SignInUserAsync(httpContext, user.FullName, user.Email, user.Role, true);
     return Results.Created("/Dashboard", new { user = user.FullName, role = user.Role });
 }).WithTags("Authentication");
@@ -87,6 +101,7 @@ app.MapPost("/api/auth/logout", async (HttpContext httpContext) =>
     await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     return Results.Ok(new { message = "Signed out" });
 }).WithTags("Authentication");
+app.MapGet("/api/auth/session", (HttpContext context) => Results.Ok(new { authenticated = context.User.Identity?.IsAuthenticated == true, name = context.User.Identity?.Name, role = context.User.FindFirstValue(ClaimTypes.Role) })).WithTags("Authentication");
 
 app.MapGet("/api/dashboard", async (ReLoopStore store, HttpContext context) => Results.Ok(await store.GetDashboardAsync(context.User.FindFirstValue(ClaimTypes.Email)))).RequireAuthorization().WithTags("Dashboard");
 app.MapGet("/api/pickups", async (ReLoopStore store, HttpContext context, string? status) => Results.Ok(await store.GetPickupsAsync(context.User.FindFirstValue(ClaimTypes.Email), status))).RequireAuthorization().WithTags("Pickups");

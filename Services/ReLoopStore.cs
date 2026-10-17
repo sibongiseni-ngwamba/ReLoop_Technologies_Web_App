@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using ReLoop_Technologies_Web_App.Data;
 using ReLoop_Technologies_Web_App.Data.Entities;
 using ReLoop_Technologies_Web_App.Models;
@@ -9,25 +10,43 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
 {
     private static readonly Guid DemoUserId = new("2fc1f806-b68c-4a06-94fd-a97afcc24f2f");
 
-    public async Task<UserAccount> FindOrCreateUserAsync(string fullName, string email, string password)
+    private readonly PasswordHasher<UserAccount> passwordHasher = new();
+
+    public async Task<UserAccount?> AuthenticateAsync(string email, string password)
     {
         var user = await dbContext.Users.FirstOrDefaultAsync(candidate => candidate.Email == email);
-        if (user is not null)
+        if (user is null || !user.IsActive)
         {
+            return null;
+        }
+
+        // Migrate the original prototype's seeded credentials on first successful login.
+        if (user.PasswordHash == "demo-password-only" && password == "password1")
+        {
+            user.PasswordHash = passwordHasher.HashPassword(user, password);
+            await dbContext.SaveChangesAsync();
             return user;
         }
 
-        user = new UserAccount
+        return passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password) == PasswordVerificationResult.Failed ? null : user;
+    }
+
+    public async Task<UserAccount?> CreateUserAsync(string fullName, string email, string password)
+    {
+        if (await dbContext.Users.AnyAsync(candidate => candidate.Email == email)) return null;
+        var user = new UserAccount
         {
             Id = Guid.NewGuid(),
             FullName = fullName,
             Email = email,
-            PasswordHash = $"demo-{password.Length}-chars",
-            Role = email.Contains("admin", StringComparison.OrdinalIgnoreCase) ? "Admin" : "Member",
+            PasswordHash = string.Empty,
+            // Privileged roles are assigned through controlled administration, never inferred from an email address.
+            Role = "Member",
             Address = "452 Eco Circular Ave, Suite 3B",
             PreferredCategory = "Recyclables",
             CreatedAt = DateTimeOffset.UtcNow
         };
+        user.PasswordHash = passwordHasher.HashPassword(user, password);
 
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync();
@@ -237,6 +256,9 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
     private async Task<UserAccount> GetDemoUserAsync() =>
         await dbContext.Users.FindAsync(DemoUserId)
         ?? throw new InvalidOperationException("Seed user was not found. Run EF Core migrations and database update.");
+
+    private async Task<UserAccount> RequireUserAsync(string? email) =>
+        await GetUserByEmailAsync(email) ?? throw new InvalidOperationException("The signed-in account could not be found.");
 
     private static PickupDto ToPickupDto(Pickup pickup) => new(
         pickup.ReferenceNumber,

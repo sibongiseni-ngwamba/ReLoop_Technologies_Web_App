@@ -3,7 +3,7 @@
     ViewData["Title"] = "Admin Console";
 }
 
-<section class="app-page admin-page js-admin">
+<section class="app-page admin-page js-admin-management">
     <div class="admin-layout">
         <aside class="admin-sidebar">
             <strong>Admin Panel</strong>
@@ -14,10 +14,11 @@
             <a asp-page="/Contact">Partner support</a>
         </aside>
 
-        <div>
-            <div class="page-heading">
-                <h1>Admin Command Console</h1>
-                <p>Monitor municipal collection performance, eco verification logs, and reward activity.</p>
+        <div class="admin-workspace">
+            <div class="page-heading" id="overview">
+                <p class="landing-eyebrow">Authorised workspace</p>
+                <h1>Operations dashboard</h1>
+                <p>Manage members, collection operations, recycling activity, and circular rewards from current system data.</p>
             </div>
 
             <div class="metric-grid" data-admin-metrics aria-live="polite"><p class="empty-state">Loading admin statistics…</p></div>
@@ -39,3 +40,5 @@
         </div>
     </div>
 </section>
+
+<dialog class="admin-dialog" data-admin-dialog><form method="dialog" data-admin-editor><div data-admin-editor-fields></div><div class="button-pair"><button class="reloop-btn reloop-btn--primary" type="submit">Save changes</button><button class="reloop-btn reloop-btn--secondary" type="button" data-admin-cancel>Cancel</button></div><p class="form-status" data-admin-editor-status aria-live="polite"></p></form></dialog>
