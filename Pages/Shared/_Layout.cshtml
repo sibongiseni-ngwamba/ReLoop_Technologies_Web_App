@@ -35,11 +35,13 @@
             <partial name="_ShellNav" />
 
             <div class="reloop-topbar__actions">
-                <a class="reloop-icon-button" asp-page="/Dashboard" aria-label="Notifications">
-                    <span aria-hidden="true">🔔</span>
-                </a>
-                <a class="reloop-avatar" asp-page="/Profile" aria-label="User profile">A</a>
-                <a class="reloop-btn reloop-btn--secondary reloop-topbar__login" asp-page="/Login">Login</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="reloop-icon-button" asp-page="/Dashboard" aria-label="Dashboard"><span aria-hidden="true">⌂</span></a>
+                    <a class="reloop-avatar" asp-page="/Profile" aria-label="User profile">@User.Identity?.Name?.Substring(0, 1).ToUpperInvariant()</a>
+                    <a class="reloop-btn reloop-btn--secondary reloop-topbar__login" asp-page="/Logout">Logout</a>
+                }
+                else { <a class="reloop-btn reloop-btn--secondary reloop-topbar__login" asp-page="/Login">Login</a> }
             </div>
         </div>
     </header>

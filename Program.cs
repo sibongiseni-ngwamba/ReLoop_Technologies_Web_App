@@ -14,7 +14,11 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 // Add services to the container.
-builder.Services.AddRazorPages(options => options.Conventions.AuthorizePage("/Admin/Index", "AdminOnly"));
+builder.Services.AddRazorPages(options =>
+{
+    foreach (var page in new[] { "/Dashboard", "/ScanWaste", "/SchedulePickup", "/MyPickups", "/Profile", "/Logout" }) options.Conventions.AuthorizePage(page);
+    options.Conventions.AuthorizePage("/Admin/Index", "AdminOnly");
+});
 builder.Services.AddAuthorization(options => options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin")));
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -22,6 +26,17 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Login";
         options.LogoutPath = "/Logout";
         options.AccessDeniedPath = "/Login";
+        options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api")) { context.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; }
+            context.Response.Redirect(context.RedirectUri); return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api")) { context.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
+            context.Response.Redirect(context.RedirectUri); return Task.CompletedTask;
+        };
     });
 builder.Services.AddDbContext<ReLoopDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ReLoopDatabase")));
@@ -56,7 +71,8 @@ app.MapPost("/api/auth/login", async (AuthRequest request, ReLoopStore store, Ht
         return Results.ValidationProblem(errors);
     }
 
-    var user = await store.FindOrCreateUserAsync("Alex Rivera", request.Email, request.Password);
+    var user = await store.AuthenticateAsync(request.Email, request.Password);
+    if (user is null) return Results.Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Invalid email or password");
     await SignInUserAsync(httpContext, user.FullName, user.Email, user.Role, request.KeepSignedIn);
     return Results.Ok(new { user = user.FullName, role = user.Role });
 }).WithTags("Authentication");
@@ -69,7 +85,8 @@ app.MapPost("/api/auth/signup", async (SignUpRequest request, ReLoopStore store,
         return Results.ValidationProblem(errors);
     }
 
-    var user = await store.FindOrCreateUserAsync(request.FullName, request.Email, request.Password);
+    var user = await store.CreateUserAsync(request.FullName, request.Email, request.Password);
+    if (user is null) return Results.Conflict(new { title = "An account already exists for this email.", errors = new Dictionary<string, string[]> { ["email"] = ["Use another email or sign in instead."] } });
     await SignInUserAsync(httpContext, user.FullName, user.Email, user.Role, true);
     return Results.Created("/Dashboard", new { user = user.FullName, role = user.Role });
 }).WithTags("Authentication");
@@ -79,10 +96,11 @@ app.MapPost("/api/auth/logout", async (HttpContext httpContext) =>
     await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     return Results.Ok(new { message = "Signed out" });
 }).WithTags("Authentication");
+app.MapGet("/api/auth/session", (HttpContext context) => Results.Ok(new { authenticated = context.User.Identity?.IsAuthenticated == true, name = context.User.Identity?.Name, role = context.User.FindFirstValue(ClaimTypes.Role) })).WithTags("Authentication");
 
-app.MapGet("/api/dashboard", async (ReLoopStore store) => Results.Ok(await store.GetDashboardAsync())).WithTags("Dashboard");
-app.MapGet("/api/pickups", async (ReLoopStore store, string? status) => Results.Ok(await store.GetPickupsAsync(status))).WithTags("Pickups");
-app.MapPost("/api/pickups", async (CreatePickupRequest request, ReLoopStore store) =>
+app.MapGet("/api/dashboard", async (ReLoopStore store, HttpContext context) => Results.Ok(await store.GetDashboardAsync(context.User.FindFirstValue(ClaimTypes.Email)))).RequireAuthorization().WithTags("Dashboard");
+app.MapGet("/api/pickups", async (ReLoopStore store, HttpContext context, string? status) => Results.Ok(await store.GetPickupsAsync(context.User.FindFirstValue(ClaimTypes.Email), status))).RequireAuthorization().WithTags("Pickups");
+app.MapPost("/api/pickups", async (CreatePickupRequest request, ReLoopStore store, HttpContext context) =>
 {
     var errors = Validate(request);
     if (errors.Count > 0)
@@ -90,14 +108,14 @@ app.MapPost("/api/pickups", async (CreatePickupRequest request, ReLoopStore stor
         return Results.ValidationProblem(errors);
     }
 
-    return Results.Created("/api/pickups", await store.CreatePickupAsync(request));
-}).WithTags("Pickups");
+    return Results.Created("/api/pickups", await store.CreatePickupAsync(context.User.FindFirstValue(ClaimTypes.Email), request));
+}).RequireAuthorization().WithTags("Pickups");
 
-app.MapPost("/api/scan/classify", async (HttpRequest request, ReLoopStore store) =>
+app.MapPost("/api/scan/classify", async (HttpRequest request, ReLoopStore store, HttpContext context) =>
 {
     var fileName = request.Form.Files.FirstOrDefault()?.FileName ?? "plastic-bottle.jpg";
-    return Results.Ok(await store.ClassifyScanAsync(fileName));
-}).DisableAntiforgery().WithTags("Scan");
+    return Results.Ok(await store.ClassifyScanAsync(context.User.FindFirstValue(ClaimTypes.Email), fileName));
+}).RequireAuthorization().DisableAntiforgery().WithTags("Scan");
 
 app.MapGet("/api/admin/stats", async (ReLoopStore store) => Results.Ok(await store.GetAdminStatsAsync())).RequireAuthorization("AdminOnly").WithTags("Admin");
 app.MapGet("/api/admin/overview", async (AdminManagementService service) => Results.Ok(await service.GetOverviewAsync())).RequireAuthorization("AdminOnly");
@@ -120,9 +138,9 @@ app.MapPut("/api/admin/rewards/{id:guid}", async (Guid id, RewardCatalogueReques
 app.MapGet("/api/admin/redemptions", async (AdminManagementService service, int page = 1, int pageSize = 10) => Results.Ok(await service.GetRedemptionsAsync(page, pageSize))).RequireAuthorization("AdminOnly");
 app.MapPut("/api/admin/redemptions/{id:guid}", async (Guid id, RedemptionUpdateRequest request, AdminManagementService service) => { var errors = Validate(request); if (errors.Count > 0) return Results.ValidationProblem(errors); var redemption = await service.UpdateRedemptionAsync(id, request); return redemption is null ? Results.NotFound() : Results.Ok(redemption); }).RequireAuthorization("AdminOnly");
 app.MapGet("/api/admin/reports/system.csv", async (AdminManagementService service) => Results.File(System.Text.Encoding.UTF8.GetBytes(await service.BuildReportAsync()), "text/csv", "reloop-system-report.csv")).RequireAuthorization("AdminOnly");
-app.MapGet("/api/rewards", () => Results.Ok(new { points = 1200, tier = "Circular Citizen", nextRewardAt = 1500 })).WithTags("Rewards");
+app.MapGet("/api/rewards", () => Results.Ok(new { points = 1200, tier = "Circular Citizen", nextRewardAt = 1500 })).RequireAuthorization().WithTags("Rewards");
 app.MapGet("/api/profile", async (HttpContext httpContext, ReLoopStore store) =>
-    Results.Ok(await store.GetProfileAsync(httpContext.User.FindFirstValue(ClaimTypes.Email)))).WithTags("Profile");
+    Results.Ok(await store.GetProfileAsync(httpContext.User.FindFirstValue(ClaimTypes.Email)))).RequireAuthorization().WithTags("Profile");
 app.MapPut("/api/profile", async (ProfileUpdateRequest request, HttpContext httpContext, ReLoopStore store) =>
 {
     var errors = Validate(request);
@@ -134,7 +152,7 @@ app.MapPut("/api/profile", async (ProfileUpdateRequest request, HttpContext http
     var profile = await store.UpdateProfileAsync(httpContext.User.FindFirstValue(ClaimTypes.Email), request);
     await SignInUserAsync(httpContext, profile.FullName, profile.Email, profile.Role, true);
     return Results.Ok(profile);
-}).WithTags("Profile");
+}).RequireAuthorization().WithTags("Profile");
 app.MapPost("/api/contact", async (ContactRequest request, ReLoopStore store) =>
 {
     var errors = Validate(request);

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using ReLoop_Technologies_Web_App.Data;
 using ReLoop_Technologies_Web_App.Data.Entities;
 using ReLoop_Technologies_Web_App.Models;
@@ -9,26 +10,43 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
 {
     private static readonly Guid DemoUserId = new("2fc1f806-b68c-4a06-94fd-a97afcc24f2f");
 
-    public async Task<UserAccount> FindOrCreateUserAsync(string fullName, string email, string password)
+    private readonly PasswordHasher<UserAccount> passwordHasher = new();
+
+    public async Task<UserAccount?> AuthenticateAsync(string email, string password)
     {
         var user = await dbContext.Users.FirstOrDefaultAsync(candidate => candidate.Email == email);
-        if (user is not null)
+        if (user is null || !user.IsActive)
         {
+            return null;
+        }
+
+        // Migrate the original prototype's seeded credentials on first successful login.
+        if (user.PasswordHash == "demo-password-only" && password == "password1")
+        {
+            user.PasswordHash = passwordHasher.HashPassword(user, password);
+            await dbContext.SaveChangesAsync();
             return user;
         }
 
-        user = new UserAccount
+        return passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password) == PasswordVerificationResult.Failed ? null : user;
+    }
+
+    public async Task<UserAccount?> CreateUserAsync(string fullName, string email, string password)
+    {
+        if (await dbContext.Users.AnyAsync(candidate => candidate.Email == email)) return null;
+        var user = new UserAccount
         {
             Id = Guid.NewGuid(),
             FullName = fullName,
             Email = email,
-            PasswordHash = $"demo-{password.Length}-chars",
+            PasswordHash = string.Empty,
             // Privileged roles are assigned through controlled administration, never inferred from an email address.
             Role = "Member",
             Address = "452 Eco Circular Ave, Suite 3B",
             PreferredCategory = "Recyclables",
             CreatedAt = DateTimeOffset.UtcNow
         };
+        user.PasswordHash = passwordHasher.HashPassword(user, password);
 
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync();
@@ -101,9 +119,9 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
         return message;
     }
 
-    public async Task<DashboardDto> GetDashboardAsync()
+    public async Task<DashboardDto> GetDashboardAsync(string? email)
     {
-        var user = await GetDemoUserAsync();
+        var user = await RequireUserAsync(email);
         var pickups = await dbContext.Pickups
             .Where(pickup => pickup.UserAccountId == user.Id)
             .OrderByDescending(pickup => pickup.ScheduledFor)
@@ -129,9 +147,10 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
             pickups.Take(3).Select(ToPickupDto));
     }
 
-    public async Task<IReadOnlyList<PickupDto>> GetPickupsAsync(string? status = null)
+    public async Task<IReadOnlyList<PickupDto>> GetPickupsAsync(string? email, string? status = null)
     {
-        var query = dbContext.Pickups.Where(pickup => pickup.UserAccountId == DemoUserId);
+        var user = await RequireUserAsync(email);
+        var query = dbContext.Pickups.Where(pickup => pickup.UserAccountId == user.Id);
         if (!string.IsNullOrWhiteSpace(status) && !status.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
             query = query.Where(pickup => pickup.Status == status);
@@ -143,12 +162,13 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
             .ToListAsync();
     }
 
-    public async Task<PickupDto> CreatePickupAsync(CreatePickupRequest request)
+    public async Task<PickupDto> CreatePickupAsync(string? email, CreatePickupRequest request)
     {
+        var user = await RequireUserAsync(email);
         var pickup = new Pickup
         {
             Id = Guid.NewGuid(),
-            UserAccountId = DemoUserId,
+            UserAccountId = user.Id,
             ReferenceNumber = $"#LP-{Random.Shared.Next(9100, 9999)}",
             ScheduledFor = BuildPickupDate(request.PreferredDate, request.PreferredTimeWindow),
             Address = request.HomeAddress,
@@ -162,7 +182,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
         dbContext.ActivityLogs.Add(new ActivityLog
         {
             Id = Guid.NewGuid(),
-            UserAccountId = DemoUserId,
+            UserAccountId = user.Id,
             Title = "Pickup request submitted",
             Detail = $"{request.WasteCategory} collection created for {request.PreferredDate:dd MMM yyyy}",
             Tone = "info",
@@ -173,8 +193,9 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
         return ToPickupDto(pickup);
     }
 
-    public async Task<ScanResultDto> ClassifyScanAsync(string fileName)
+    public async Task<ScanResultDto> ClassifyScanAsync(string? email, string fileName)
     {
+        var user = await RequireUserAsync(email);
         var lower = fileName.ToLowerInvariant();
         var category = lower.Contains("glass") ? "Glass Bottles" : lower.Contains("paper") ? "Paper" : "Plastics (PET 1)";
         var item = category == "Paper" ? "Cardboard Sheet" : category == "Glass Bottles" ? "Glass Jar" : "Plastic Bottle";
@@ -182,7 +203,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
         var result = new ScanRecord
         {
             Id = Guid.NewGuid(),
-            UserAccountId = DemoUserId,
+            UserAccountId = user.Id,
             ItemName = item,
             Disposition = "Recyclable",
             Category = category,
@@ -197,7 +218,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
         dbContext.ActivityLogs.Add(new ActivityLog
         {
             Id = Guid.NewGuid(),
-            UserAccountId = DemoUserId,
+            UserAccountId = user.Id,
             Title = $"{item} scan completed",
             Detail = $"{category} verified with high confidence",
             Tone = "success",
@@ -235,6 +256,9 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
     private async Task<UserAccount> GetDemoUserAsync() =>
         await dbContext.Users.FindAsync(DemoUserId)
         ?? throw new InvalidOperationException("Seed user was not found. Run EF Core migrations and database update.");
+
+    private async Task<UserAccount> RequireUserAsync(string? email) =>
+        await GetUserByEmailAsync(email) ?? throw new InvalidOperationException("The signed-in account could not be found.");
 
     private static PickupDto ToPickupDto(Pickup pickup) => new(
         pickup.ReferenceNumber,

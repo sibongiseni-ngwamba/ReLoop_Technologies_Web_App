@@ -1,7 +1,13 @@
 const toneClass = (tone) => `reloop-badge reloop-badge--${tone || "neutral"}`;
 
 async function fetchJson(url, options) {
-  const response = await fetch(url, options);
+  let response;
+  try { response = await fetch(url, options); } catch { throw new Error("Network unavailable. Check your connection and try again."); }
+  if (response.status === 401) {
+    window.location.assign(`/Login?returnUrl=${encodeURIComponent(window.location.pathname)}`);
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+  if (response.status === 403) throw new Error("You do not have permission to perform this action.");
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw Object.assign(new Error(payload.title || "Please check the highlighted fields and try again."), { payload });
@@ -35,7 +41,12 @@ document.querySelectorAll(".js-api-form").forEach((form) => {
       return;
     }
 
+    const button = form.querySelector('button[type="submit"]');
+    const label = button?.innerHTML;
     try {
+      if (button) { button.disabled = true; button.setAttribute("aria-busy", "true"); }
+      status.textContent = "Saving…";
+      status.classList.remove("is-success");
       await fetchJson(form.dataset.endpoint, {
         method: form.dataset.method || "POST",
         headers: { "Content-Type": "application/json" },
@@ -47,6 +58,8 @@ document.querySelectorAll(".js-api-form").forEach((form) => {
     } catch (error) {
       status.textContent = error.message;
       showFormErrors(form, error.payload?.errors);
+    } finally {
+      if (button) { button.disabled = false; button.removeAttribute("aria-busy"); button.innerHTML = label; }
     }
   });
 });
