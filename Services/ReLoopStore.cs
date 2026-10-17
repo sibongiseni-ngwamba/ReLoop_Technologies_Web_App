@@ -63,6 +63,13 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
         return await dbContext.Users.FirstOrDefaultAsync(user => user.Email == email);
     }
 
+    public async Task<bool> IsSessionValidAsync(string? email, string? role)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return false;
+        var user = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(candidate => candidate.Email == email);
+        return user is { IsActive: true } && string.Equals(user.Role, role, StringComparison.Ordinal);
+    }
+
     public async Task<ProfileDto> GetProfileAsync(string? email)
     {
         var user = await GetUserByEmailAsync(email) ?? await GetDemoUserAsync();
