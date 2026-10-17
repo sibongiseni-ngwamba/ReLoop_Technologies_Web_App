@@ -1,6 +1,6 @@
 # ReLoop Technologies Web App
 
-ReLoop is a recycling management web application built with ASP.NET Core Razor Pages. It supports user authentication screens, waste scan classification, pickup scheduling, pickup history, rewards summaries, admin monitoring, and SQL-backed persistence.
+ReLoop is a recycling management web application built with ASP.NET Core Razor Pages. It supports Firebase Authentication, waste scan classification, pickup scheduling, pickup history, rewards, admin management, and Firestore-backed persistence shared with the mobile app.
 
 ## Features
 
@@ -12,17 +12,18 @@ ReLoop is a recycling management web application built with ASP.NET Core Razor P
 - Pickup ledger with status filtering.
 - Admin command console with KPIs, waste distribution, and verification rows.
 - REST API endpoints for authentication, member profiles, pickups, rewards/redemptions, notifications, waste guidance, contact, and administrator operations/reports.
-- Entity Framework Core SQL Server/Azure SQL persistence with migrations and seed data.
+- Firebase Authentication (Email/Password) with server-verified Firebase ID tokens and an HTTP-only application session cookie.
+- Firestore persistence through the Google Cloud .NET client and Application Default Credentials (no service-account key committed to source).
 - xUnit integration tests and GitHub Actions CI workflow.
 
 ## Tech Stack
 
 - ASP.NET Core Razor Pages
 - .NET 8
-- Entity Framework Core 8
-- SQL Server / Azure SQL
+- Firebase Authentication
+- Cloud Firestore
 - Bootstrap static assets
-- xUnit, ASP.NET Core TestHost, EF Core InMemory for tests
+- xUnit, ASP.NET Core TestHost, in-memory document store for tests
 
 ## Branches
 
@@ -53,38 +54,28 @@ If that port is already being used, run:
 dotnet run --urls http://localhost:5299
 ```
 
-## SQL Connection String
+## Firebase Configuration
 
-For local development, keep database credentials out of checked-in settings and store your SQL Server or Azure SQL connection string with User Secrets:
+The shared Firebase project ID is `relooptechnologies-2eda2`; the app uses the `(default)` Firestore database. The browser Firebase web-app configuration is public client configuration, while server credentials must use Application Default Credentials or the hosting environment's workload identity. Never commit a service-account JSON key.
 
 ```text
 dotnet user-secrets init
-dotnet user-secrets set "ConnectionStrings:ReLoopDatabase" "<your-connection-string>"
+dotnet user-secrets set "Firebase:WebApiKey" "<Firebase web API key>"
+dotnet user-secrets set "Firebase:WebAppId" "<Firebase web app ID>"
+dotnet user-secrets set "Firebase:AuthDomain" "<Firebase auth domain>"
 ```
 
-For production hosting, set this environment variable or app setting instead of committing secrets:
+The Firebase web configuration can also be provided with `Firebase__WebApiKey`, `Firebase__WebAppId`, and `Firebase__AuthDomain` environment variables. The .NET server uses Application Default Credentials; on a local development machine, authenticate with the Google Cloud CLI for the selected project. In production, use the host's workload identity/service account with least-privilege Firestore access.
 
-```text
-ConnectionStrings__ReLoopDatabase
-```
+The app does not create Firebase resources. Firebase Authentication, the Firestore database, and IAM access must be configured in the Firebase/Google Cloud project. Firebase web API key and app ID are not server secrets, but must correspond to this project.
 
-More details are in [SQL-CONNECTION-SETUP.md](SQL-CONNECTION-SETUP.md).
+The data model is documented in `Data/FirestoreDocuments.cs` and matches the shared ERD. Firestore security rules are in [firestore.rules](firestore.rules); composite indexes are in [firestore.indexes.json](firestore.indexes.json). The server uses Admin SDK/service credentials and must enforce authorization in the application; these client rules do not restrict trusted server credentials.
 
-## Database Setup
+## Shared Firestore Data Model
 
-Install or restore the local EF tool:
+The ERD below is the Firestore collection model shared by the website and its mobile counterpart.
 
-```powershell
-dotnet tool restore
-```
-
-Apply the migration:
-
-```powershell
-dotnet tool run dotnet-ef database update
-```
-
-The migration creates tables for users, pickups, scan records, activity logs, and reward ledger entries.
+![ReLoop Technologies Firestore ERD](docs/wireframes/reloop-firestore-erd.png)
 
 ## Testing
 
@@ -94,7 +85,7 @@ Run all tests:
 dotnet test
 ```
 
-The test project uses an in-memory database so CI and local testing do not require a live Azure SQL database.
+The test project uses an in-memory Firestore document-store substitute and fake verified identities, so CI does not contact Firebase.
 
 The manual QA checklist is in [QA-CHECKLIST.md](QA-CHECKLIST.md).
 
@@ -140,6 +131,6 @@ The images below are the supplied wireframes and brand references used for the i
 
 ## Notes
 
-- Demo auth currently validates input and creates or finds users through the app service, but it does not yet implement production password hashing or secure sessions.
+- Firebase Auth handles passwords. The server verifies Firebase ID tokens and authorizes the secure application session against the current Firestore user role and active state.
 - Scan classification is a deterministic demo classifier based on filename hints until an AI/image model is connected.
-- Do not commit real Azure SQL credentials.
+- Scan classification and points are recorded in Firestore; production image recognition still requires a connected model.

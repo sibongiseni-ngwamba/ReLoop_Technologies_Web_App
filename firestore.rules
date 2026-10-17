@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+
+    // Clients may read their own records. All writes go through trusted server APIs.
+    match /users/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+    match /rewards/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+    match /pickups/{pickupId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+    match /wasteLogs/{wasteLogId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+    match /redemptionLogs/{redemptionId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+    match /pointsTransactions/{transactionId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+    match /rewardItems/{rewardId} {
+      allow read: if signedIn() && resource.data.isActive == true;
+      allow write: if false;
+    }
+    match /wasteCategories/{categoryId} {
+      allow read: if signedIn() && resource.data.isActive == true;
+      allow write: if false;
+    }
+    match /guidanceContent/{guidanceId} {
+      allow read: if signedIn() && resource.data.isActive == true;
+      allow write: if false;
+    }
+    // Agents and contact messages are private; administrative access uses the Admin SDK.
+    match /agents/{agentId} { allow read, write: if false; }
+    match /contactMessages/{contactId} { allow read, write: if false; }
+  }
+}

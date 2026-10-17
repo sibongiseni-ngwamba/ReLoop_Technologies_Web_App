@@ -96,16 +96,6 @@ async function loadProfile() {
   }
 }
 
-document.querySelectorAll(".js-logout").forEach((button) => {
-  button.addEventListener("click", async () => {
-    const status = button.parentElement.querySelector(".form-status");
-    await fetchJson("/api/auth/logout", { method: "POST" });
-    status.textContent = "You are logged out. Redirecting to the home page...";
-    status.classList.add("is-success");
-    window.setTimeout(() => window.location.assign("/"), 700);
-  });
-});
-
 function metricCard(metric) {
   return `<article class="metric-card metric-card--${metric.tone}"><span>${metric.label}</span><strong>${metric.value}</strong><small>${metric.detail}</small></article>`;
 }
@@ -145,12 +135,24 @@ document.querySelectorAll(".js-scan-form").forEach((form) => {
       return;
     }
 
-    const payload = await fetchJson("/api/scan/classify", { method: "POST", body: new FormData(form) });
-    status.textContent = "Scanning complete. Highly confident classification matches.";
-    status.classList.add("is-success");
-    result.hidden = false;
-    result.innerHTML = `<div class="scan-result__media">${input.files[0].name}</div><div class="scan-result__details"><h2>${payload.item}</h2><div class="badge-row"><span class="reloop-badge reloop-badge--success">${payload.disposition}</span><span class="reloop-badge reloop-badge--warning">+${payload.points} pts</span><span class="reloop-badge reloop-badge--info">${payload.confidence}% confidence</span></div><dl><dt>Category</dt><dd>${payload.category}</dd><dt>Estimated Weight</dt><dd>${payload.estimatedWeight}</dd><dt>Date Scanned</dt><dd>${new Date(payload.dateScanned).toLocaleString()}</dd></dl><div class="button-pair"><a class="reloop-btn reloop-btn--primary" href="/Dashboard">View dashboard</a><button class="reloop-btn reloop-btn--secondary" type="button" data-scan-again>Scan another item</button></div></div>`;
-    result.querySelector("[data-scan-again]").addEventListener("click", () => window.location.reload());
+    const submit = form.querySelector('button[type="submit"]');
+    if (submit) { submit.disabled = true; submit.classList.add("is-loading"); }
+    status.textContent = "Classifying your upload…";
+    status.classList.add("is-loading");
+    try {
+      const payload = await fetchJson("/api/scan/classify", { method: "POST", body: new FormData(form) });
+      status.textContent = "Scan saved successfully.";
+      status.classList.remove("is-loading");
+      status.classList.add("is-success");
+      result.hidden = false;
+      result.innerHTML = `<div class="scan-result__media">${input.files[0].name}</div><div class="scan-result__details"><h2>${payload.item}</h2><div class="badge-row"><span class="reloop-badge reloop-badge--success">${payload.disposition}</span><span class="reloop-badge reloop-badge--warning">+${payload.points} pts</span><span class="reloop-badge reloop-badge--info">${payload.confidence}% confidence</span></div><dl><dt>Category</dt><dd>${payload.category}</dd><dt>Estimated Weight</dt><dd>${payload.estimatedWeight}</dd><dt>Date Scanned</dt><dd>${new Date(payload.dateScanned).toLocaleString()}</dd></dl><div class="button-pair"><a class="reloop-btn reloop-btn--primary" href="/Dashboard">View dashboard</a><button class="reloop-btn reloop-btn--secondary" type="button" data-scan-again>Scan another item</button></div></div>`;
+      result.querySelector("[data-scan-again]").addEventListener("click", () => window.location.reload());
+    } catch (error) {
+      status.textContent = error.message || "We could not classify this image. Please try again.";
+      status.classList.remove("is-loading");
+    } finally {
+      if (submit) { submit.disabled = false; submit.classList.remove("is-loading"); }
+    }
   });
 });
 
@@ -178,22 +180,8 @@ document.querySelectorAll(".js-pickups .tab").forEach((button) => {
   });
 });
 
-async function loadAdmin() {
-  const root = document.querySelector(".js-admin");
-  if (!root) return;
-  try {
-    const data = await fetchJson("/api/admin/stats");
-    root.querySelector("[data-admin-metrics]").innerHTML = data.metrics.map(metricCard).join("");
-    root.querySelector("[data-admin-legend]").innerHTML = data.wasteDistribution.map(slice => `<span><i class="legend-dot legend-dot--${slice.tone}"></i>${slice.type}<strong>${slice.percent}%</strong></span>`).join("");
-    root.querySelector("[data-admin-table]").innerHTML = data.pendingPickups.map(row => `<tr><td><strong>Alex Rivera</strong></td><td>${row.date}</td><td>${row.wasteType}</td><td>${row.weight}</td><td><span class="${toneClass(statusTone(row.status))}">${row.status}</span></td></tr>`).join("");
-  } catch {
-    root.querySelector("[data-admin-metrics]").innerHTML = '<p class="empty-state">Admin statistics are unavailable. Please refresh and try again.</p>';
-  }
-}
-
 loadDashboard();
 loadPickups();
-loadAdmin();
 loadProfile();
 
 const adminRoot = document.querySelector(".js-admin-management");
