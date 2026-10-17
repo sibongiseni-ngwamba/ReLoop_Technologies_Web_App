@@ -35,7 +35,13 @@ document.querySelectorAll(".js-api-form").forEach((form) => {
       return;
     }
 
+    const submitButton = form.querySelector('button[type="submit"]');
+    const initialLabel = submitButton?.innerHTML;
     try {
+      if (submitButton) { submitButton.disabled = true; submitButton.classList.add("is-loading"); submitButton.textContent = "Saving…"; }
+      status.textContent = "Saving your details…";
+      status.classList.remove("is-success");
+      status.classList.add("is-loading");
       await fetchJson(form.dataset.endpoint, {
         method: form.dataset.method || "POST",
         headers: { "Content-Type": "application/json" },
@@ -47,23 +53,41 @@ document.querySelectorAll(".js-api-form").forEach((form) => {
     } catch (error) {
       status.textContent = error.message;
       showFormErrors(form, error.payload?.errors);
+    } finally {
+      status.classList.remove("is-loading");
+      if (submitButton) { submitButton.disabled = false; submitButton.classList.remove("is-loading"); submitButton.innerHTML = initialLabel; }
     }
   });
+});
+
+const menuToggle = document.querySelector(".reloop-menu-toggle");
+const primaryNavigation = document.querySelector("#primary-navigation");
+menuToggle?.addEventListener("click", () => {
+  const isOpen = primaryNavigation.classList.toggle("is-open");
+  menuToggle.setAttribute("aria-expanded", String(isOpen));
+});
+
+document.querySelectorAll("input[type='date'][name='preferredDate']").forEach((input) => {
+  input.min = new Date().toISOString().slice(0, 10);
 });
 
 async function loadProfile() {
   const root = document.querySelector(".js-profile");
   if (!root) return;
 
-  const profile = await fetchJson("/api/profile");
-  root.querySelectorAll("[data-profile-field]").forEach((field) => {
-    field.value = profile[field.dataset.profileField] || "";
-  });
-  root.querySelector("[data-profile-summary]").innerHTML = `
+  try {
+    const profile = await fetchJson("/api/profile");
+    root.querySelectorAll("[data-profile-field]").forEach((field) => {
+      field.value = profile[field.dataset.profileField] || "";
+    });
+    root.querySelector("[data-profile-summary]").innerHTML = `
     <div class="profile-stat"><span>Role</span><strong>${profile.role}</strong></div>
     <div class="profile-stat"><span>Reward Points</span><strong>${profile.rewardPoints}</strong></div>
     <div class="profile-stat"><span>Scans</span><strong>${profile.scanCount}</strong></div>
     <div class="profile-stat"><span>Pickups</span><strong>${profile.pickupCount}</strong></div>`;
+  } catch {
+    root.querySelector("[data-profile-summary]").textContent = "We could not load your profile right now. Please refresh and try again.";
+  }
 }
 
 document.querySelectorAll(".js-logout").forEach((button) => {
@@ -91,10 +115,14 @@ function pickupMini(pickup) {
 async function loadDashboard() {
   const root = document.querySelector(".js-dashboard");
   if (!root) return;
-  const data = await fetchJson("/api/dashboard");
-  root.querySelector("[data-dashboard-metrics]").innerHTML = data.metrics.map(metricCard).join("");
-  root.querySelector("[data-dashboard-activity]").innerHTML = data.activity.map(item => `<article class="activity-item"><span class="${toneClass(item.tone)}">${item.date}</span><strong>${item.title}</strong><p>${item.detail}</p></article>`).join("");
-  root.querySelector("[data-dashboard-pickups]").innerHTML = data.pickups.map(pickupMini).join("");
+  try {
+    const data = await fetchJson("/api/dashboard");
+    root.querySelector("[data-dashboard-metrics]").innerHTML = data.metrics.map(metricCard).join("");
+    root.querySelector("[data-dashboard-activity]").innerHTML = data.activity.map(item => `<article class="activity-item"><span class="${toneClass(item.tone)}">${item.date}</span><strong>${item.title}</strong><p>${item.detail}</p></article>`).join("");
+    root.querySelector("[data-dashboard-pickups]").innerHTML = data.pickups.map(pickupMini).join("");
+  } catch {
+    root.querySelector("[data-dashboard-metrics]").innerHTML = '<p class="empty-state">Dashboard data is unavailable. Please refresh to try again.</p>';
+  }
 }
 
 document.querySelectorAll(".js-scan-form").forEach((form) => {
@@ -115,16 +143,25 @@ document.querySelectorAll(".js-scan-form").forEach((form) => {
     status.textContent = "Scanning complete. Highly confident classification matches.";
     status.classList.add("is-success");
     result.hidden = false;
-    result.innerHTML = `<div class="scan-result__media">${input.files[0].name}</div><div class="scan-result__details"><h2>${payload.item}</h2><div class="badge-row"><span class="reloop-badge reloop-badge--success">${payload.disposition}</span><span class="reloop-badge reloop-badge--warning">+${payload.points} pts</span><span class="reloop-badge reloop-badge--info">${payload.confidence}% confidence</span></div><dl><dt>Category</dt><dd>${payload.category}</dd><dt>Estimated Weight</dt><dd>${payload.estimatedWeight}</dd><dt>Date Scanned</dt><dd>${new Date(payload.dateScanned).toLocaleString()}</dd></dl><div class="button-pair"><button class="reloop-btn reloop-btn--primary" type="button">Save Result</button><button class="reloop-btn reloop-btn--secondary" type="button" onclick="location.reload()">Scan Another Item</button></div></div>`;
+    result.innerHTML = `<div class="scan-result__media">${input.files[0].name}</div><div class="scan-result__details"><h2>${payload.item}</h2><div class="badge-row"><span class="reloop-badge reloop-badge--success">${payload.disposition}</span><span class="reloop-badge reloop-badge--warning">+${payload.points} pts</span><span class="reloop-badge reloop-badge--info">${payload.confidence}% confidence</span></div><dl><dt>Category</dt><dd>${payload.category}</dd><dt>Estimated Weight</dt><dd>${payload.estimatedWeight}</dd><dt>Date Scanned</dt><dd>${new Date(payload.dateScanned).toLocaleString()}</dd></dl><div class="button-pair"><a class="reloop-btn reloop-btn--primary" href="/Dashboard">View dashboard</a><button class="reloop-btn reloop-btn--secondary" type="button" data-scan-again>Scan another item</button></div></div>`;
+    result.querySelector("[data-scan-again]").addEventListener("click", () => window.location.reload());
   });
 });
 
 async function loadPickups(status = "All") {
   const root = document.querySelector(".js-pickups");
   if (!root) return;
-  const rows = await fetchJson(`/api/pickups?status=${encodeURIComponent(status)}`);
-  root.querySelector("[data-pickups-table]").innerHTML = rows.map(row => `<tr><td><strong>${row.id}</strong></td><td>${row.date}</td><td>${row.address}</td><td><strong>${row.wasteType}</strong></td><td>${row.weight}</td><td><span class="${toneClass(statusTone(row.status))}">${row.status}</span></td></tr>`).join("");
-  root.querySelector("[data-pickups-empty]").hidden = rows.length > 0;
+  try {
+    const rows = await fetchJson(`/api/pickups?status=${encodeURIComponent(status)}`);
+    root.querySelector("[data-pickups-table]").innerHTML = rows.map(row => `<tr><td><strong>${row.id}</strong></td><td>${row.date}</td><td>${row.address}</td><td><strong>${row.wasteType}</strong></td><td>${row.weight}</td><td><span class="${toneClass(statusTone(row.status))}">${row.status}</span></td></tr>`).join("");
+    const empty = root.querySelector("[data-pickups-empty]");
+    empty.hidden = rows.length > 0;
+    if (!rows.length) empty.textContent = "No pickups match this filter yet.";
+  } catch {
+    const empty = root.querySelector("[data-pickups-empty]");
+    empty.textContent = "We could not load pickups. Please refresh and try again.";
+    empty.hidden = false;
+  }
 }
 
 document.querySelectorAll(".js-pickups .tab").forEach((button) => {
@@ -138,10 +175,14 @@ document.querySelectorAll(".js-pickups .tab").forEach((button) => {
 async function loadAdmin() {
   const root = document.querySelector(".js-admin");
   if (!root) return;
-  const data = await fetchJson("/api/admin/stats");
-  root.querySelector("[data-admin-metrics]").innerHTML = data.metrics.map(metricCard).join("");
-  root.querySelector("[data-admin-legend]").innerHTML = data.wasteDistribution.map(slice => `<span><i class="legend-dot legend-dot--${slice.tone}"></i>${slice.type}<strong>${slice.percent}%</strong></span>`).join("");
-  root.querySelector("[data-admin-table]").innerHTML = data.pendingPickups.map(row => `<tr><td><strong>Alex Rivera</strong></td><td>${row.date}</td><td>${row.wasteType}</td><td>${row.weight}</td><td><span class="${toneClass(statusTone(row.status))}">${row.status}</span></td></tr>`).join("");
+  try {
+    const data = await fetchJson("/api/admin/stats");
+    root.querySelector("[data-admin-metrics]").innerHTML = data.metrics.map(metricCard).join("");
+    root.querySelector("[data-admin-legend]").innerHTML = data.wasteDistribution.map(slice => `<span><i class="legend-dot legend-dot--${slice.tone}"></i>${slice.type}<strong>${slice.percent}%</strong></span>`).join("");
+    root.querySelector("[data-admin-table]").innerHTML = data.pendingPickups.map(row => `<tr><td><strong>Alex Rivera</strong></td><td>${row.date}</td><td>${row.wasteType}</td><td>${row.weight}</td><td><span class="${toneClass(statusTone(row.status))}">${row.status}</span></td></tr>`).join("");
+  } catch {
+    root.querySelector("[data-admin-metrics]").innerHTML = '<p class="empty-state">Admin statistics are unavailable. Please refresh and try again.</p>';
+  }
 }
 
 loadDashboard();

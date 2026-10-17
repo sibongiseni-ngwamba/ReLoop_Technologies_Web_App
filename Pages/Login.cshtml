@@ -27,7 +27,7 @@
         </label>
 
         <label class="app-field">
-            <span>Password <a asp-page="/Login">Forgot?</a></span>
+            <span>Password <a asp-page="/Contact">Need help?</a></span>
             <input name="password" type="password" placeholder="Enter your password" minlength="6" required />
             <small data-error-for="password"></small>
         </label>
@@ -42,8 +42,8 @@
 
         <div class="auth-divider"><span>OR CONNECT WITH</span></div>
         <div class="auth-socials">
-            <button class="reloop-btn reloop-btn--ghost" type="button">Google</button>
-            <button class="reloop-btn reloop-btn--ghost" type="button">Apple</button>
+            <a class="reloop-btn reloop-btn--ghost" asp-page="/Contact">Google sign-in support</a>
+            <a class="reloop-btn reloop-btn--ghost" asp-page="/Contact">Apple sign-in support</a>
         </div>
         <p class="auth-switch">Don't have an account? <a asp-page="/SignUp">Sign up</a></p>
     </form>
