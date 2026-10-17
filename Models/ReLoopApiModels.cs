@@ -8,29 +8,29 @@ public sealed record AuthRequest(
     bool KeepSignedIn = false);
 
 public sealed record SignUpRequest(
-    [property: Required] string FullName,
+    [property: Required, StringLength(120, MinimumLength = 2)] string FullName,
     [property: Required, EmailAddress] string Email,
     [property: Required, MinLength(6)] string Password,
     [property: Required, Compare("Password")] string ConfirmPassword);
 
 public sealed record ProfileUpdateRequest(
-    [property: Required] string FullName,
+    [property: Required, StringLength(120, MinimumLength = 2)] string FullName,
     [property: Required, EmailAddress] string Email,
-    [property: Required, MinLength(8)] string Address,
-    [property: Required] string PreferredCategory);
+    [property: Required, StringLength(240, MinimumLength = 8)] string Address,
+    [property: Required, StringLength(80)] string PreferredCategory);
 
 public sealed record ContactRequest(
     [property: Required] string FullName,
     [property: Required, EmailAddress] string Email,
-    [property: Required] string Subject,
-    [property: Required, MinLength(10)] string Message);
+    [property: Required, StringLength(140)] string Subject,
+    [property: Required, StringLength(1200, MinimumLength = 10)] string Message);
 
 public sealed record CreatePickupRequest(
-    [property: Required, MinLength(8)] string HomeAddress,
+    [property: Required, StringLength(240, MinimumLength = 8)] string HomeAddress,
     [property: Required] DateTime PreferredDate,
-    [property: Required] string PreferredTimeWindow,
-    [property: Required] string WasteCategory,
-    string? Notes);
+    [property: Required, StringLength(60)] string PreferredTimeWindow,
+    [property: Required, StringLength(80)] string WasteCategory,
+    [property: StringLength(500)] string? Notes);
 
 public sealed record MetricDto(string Label, string Value, string Detail, string Tone);
 public sealed record ActivityDto(string Title, string Detail, string Date, string Tone);
@@ -51,3 +51,7 @@ public sealed record AdminUserUpdateRequest([property: Required, StringLength(12
 public sealed record AdminPickupUpdateRequest([property: Required, RegularExpression("^(Scheduled|Assigned|Completed|Cancelled)$")] string Status, [property: StringLength(120)] string? AssignedAgent);
 public sealed record RewardCatalogueRequest([property: Required, StringLength(120)] string Name, [property: Required, StringLength(400)] string Description, [property: Range(1, 100000)] int PointsCost, bool IsActive);
 public sealed record RedemptionUpdateRequest([property: Required, RegularExpression("^(Pending|Approved|Fulfilled|Declined)$")] string Status);
+public sealed record RedeemRewardRequest([property: Required] Guid RewardId);
+public sealed record RewardOptionDto(Guid Id, string Name, string Description, int PointsCost);
+public sealed record MemberRedemptionDto(Guid Id, string Reward, int PointsSpent, string Status, DateTimeOffset CreatedAt);
+public sealed record RewardsDto(int Points, IReadOnlyList<RewardOptionDto> Catalogue, IReadOnlyList<MemberRedemptionDto> Redemptions);

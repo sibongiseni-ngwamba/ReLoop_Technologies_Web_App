@@ -8,13 +8,12 @@ namespace ReLoop_Technologies_Web_App.Services;
 
 public sealed class ReLoopStore(ReLoopDbContext dbContext)
 {
-    private static readonly Guid DemoUserId = new("2fc1f806-b68c-4a06-94fd-a97afcc24f2f");
-
     private readonly PasswordHasher<UserAccount> passwordHasher = new();
 
     public async Task<UserAccount?> AuthenticateAsync(string email, string password)
     {
-        var user = await dbContext.Users.FirstOrDefaultAsync(candidate => candidate.Email == email);
+        email = email.Trim().ToLowerInvariant();
+        var user = await dbContext.Users.FirstOrDefaultAsync(candidate => candidate.Email.ToLower() == email);
         if (user is null || !user.IsActive)
         {
             return null;
@@ -33,7 +32,9 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
 
     public async Task<UserAccount?> CreateUserAsync(string fullName, string email, string password)
     {
-        if (await dbContext.Users.AnyAsync(candidate => candidate.Email == email)) return null;
+        email = email.Trim().ToLowerInvariant();
+        fullName = fullName.Trim();
+        if (await dbContext.Users.AnyAsync(candidate => candidate.Email.ToLower() == email)) return null;
         var user = new UserAccount
         {
             Id = Guid.NewGuid(),
@@ -55,12 +56,10 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
 
     public async Task<UserAccount?> GetUserByEmailAsync(string? email)
     {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            return await GetDemoUserAsync();
-        }
+        if (string.IsNullOrWhiteSpace(email)) return null;
 
-        return await dbContext.Users.FirstOrDefaultAsync(user => user.Email == email);
+        email = email.Trim().ToLowerInvariant();
+        return await dbContext.Users.FirstOrDefaultAsync(user => user.Email.ToLower() == email);
     }
 
     public async Task<bool> IsSessionValidAsync(string? email, string? role)
@@ -72,7 +71,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
 
     public async Task<ProfileDto> GetProfileAsync(string? email)
     {
-        var user = await GetUserByEmailAsync(email) ?? await GetDemoUserAsync();
+        var user = await RequireUserAsync(email);
         var scanCount = await dbContext.ScanRecords.CountAsync(scan => scan.UserAccountId == user.Id);
         var pickupCount = await dbContext.Pickups.CountAsync(pickup => pickup.UserAccountId == user.Id);
 
@@ -89,9 +88,14 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
 
     public async Task<ProfileDto> UpdateProfileAsync(string? currentEmail, ProfileUpdateRequest request)
     {
-        var user = await GetUserByEmailAsync(currentEmail) ?? await GetDemoUserAsync();
-        user.FullName = request.FullName;
-        user.Email = request.Email;
+        var user = await RequireUserAsync(currentEmail);
+        var newEmail = request.Email.Trim().ToLowerInvariant();
+        if (await dbContext.Users.AnyAsync(candidate => candidate.Id != user.Id && candidate.Email.ToLower() == newEmail))
+        {
+            throw new InvalidOperationException("An account already exists for this email address.");
+        }
+        user.FullName = request.FullName.Trim();
+        user.Email = newEmail;
         user.Address = request.Address;
         user.PreferredCategory = request.PreferredCategory;
 
@@ -238,7 +242,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
 
     public async Task<AdminStatsDto> GetAdminStatsAsync()
     {
-        var users = await dbContext.Users.CountAsync();
+        var users = await dbContext.Users.CountAsync(user => user.IsActive);
         var scans = await dbContext.ScanRecords.CountAsync();
         var totalWeight = await dbContext.Pickups.Where(pickup => pickup.EstimatedWeightKg.HasValue).SumAsync(pickup => pickup.EstimatedWeightKg!.Value);
         var rewards = await dbContext.RewardLedger.SumAsync(entry => entry.Points);
@@ -259,10 +263,6 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
             ],
             pickups.Select(ToPickupDto));
     }
-
-    private async Task<UserAccount> GetDemoUserAsync() =>
-        await dbContext.Users.FindAsync(DemoUserId)
-        ?? throw new InvalidOperationException("Seed user was not found. Run EF Core migrations and database update.");
 
     private async Task<UserAccount> RequireUserAsync(string? email) =>
         await GetUserByEmailAsync(email) ?? throw new InvalidOperationException("The signed-in account could not be found.");

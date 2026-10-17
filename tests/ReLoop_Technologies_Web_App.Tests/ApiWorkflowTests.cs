@@ -6,7 +6,7 @@ namespace ReLoop_Technologies_Web_App.Tests;
 
 public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : IClassFixture<ReLoopWebApplicationFactory>
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private readonly HttpClient _client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
 
     [Fact]
     public async Task Dashboard_api_returns_seeded_metrics()
@@ -37,7 +37,7 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
         var create = await _client.PostAsJsonAsync("/api/pickups", new
         {
             homeAddress = "99 Circular Loop Street",
-            preferredDate = "2026-09-10",
+            preferredDate = DateTime.UtcNow.Date.AddDays(3),
             preferredTimeWindow = "09:00 AM - 12:00 PM",
             wasteCategory = "Recyclables",
             notes = "Ring the bell"
@@ -52,7 +52,7 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
     [Fact]
     public async Task Admin_stats_api_returns_operational_summary()
     {
-        await SignInAsync("admin@reloop.example");
+        await SignInAsync("admin@reloop.co.za");
         var response = await _client.GetAsync("/api/admin/stats");
         var body = await response.Content.ReadAsStringAsync();
 
@@ -111,14 +111,73 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
     [Fact]
     public async Task Member_api_requires_sign_in()
     {
-        var unauthenticatedClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var unauthenticatedClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, BaseAddress = new Uri("https://localhost") });
 
         var response = await unauthenticatedClient.GetAsync("/api/dashboard");
 
-        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.Contains("/Login", response.Headers.Location?.ToString());
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Member_cannot_access_admin_endpoints()
+    {
+        await SignInAsync();
+        var response = await _client.GetAsync("/api/admin/stats");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Rewards_are_read_from_catalogue_and_redemption_checks_balance()
+    {
+        await SignInAsync();
+        var catalogue = await _client.GetFromJsonAsync<RewardsResponse>("/api/rewards");
+        Assert.NotNull(catalogue);
+        Assert.Equal(1200, catalogue.Points);
+        Assert.NotEmpty(catalogue.Catalogue);
+
+        var redemption = await _client.PostAsJsonAsync("/api/rewards/redemptions", new { rewardId = catalogue.Catalogue[0].Id });
+        Assert.Equal(HttpStatusCode.Created, redemption.StatusCode);
+    }
+
+    [Fact]
+    public async Task Waste_guidance_is_available_and_unknown_categories_are_not_found()
+    {
+        var response = await _client.GetAsync("/api/waste/guidance/Plastic");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Rinse", await response.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync("/api/waste/guidance/unknown" )).StatusCode);
+    }
+
+    [Fact]
+    public async Task Notifications_are_scoped_to_signed_in_member()
+    {
+        await SignInAsync();
+        var response = await _client.GetAsync("/api/notifications");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Plastic bottle scan saved", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Admin_report_is_exported_as_csv()
+    {
+        await SignInAsync("admin@reloop.co.za");
+        var response = await _client.GetAsync("/api/admin/reports");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/csv", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("Reward redemptions", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Admin_endpoint_rejects_member_update_with_invalid_status()
+    {
+        await SignInAsync("admin@reloop.co.za");
+        var response = await _client.PutAsJsonAsync("/api/admin/pickups/b5a53cb8-a41a-4b22-b541-d775f4f0b2d2", new { status = "Hacked", assignedAgent = "" });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     private Task<HttpResponseMessage> SignInAsync(string email = "alex@example.com") =>
         _client.PostAsJsonAsync("/api/auth/login", new { email, password = "password1", keepSignedIn = true });
+
+    private sealed record RewardsResponse(int Points, List<RewardOption> Catalogue);
+    private sealed record RewardOption(Guid Id, string Name, string Description, int PointsCost);
 }

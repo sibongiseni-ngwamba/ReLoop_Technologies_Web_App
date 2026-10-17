@@ -67,6 +67,7 @@ public sealed class AdminManagementService(ReLoopDbContext db)
         var users = await db.Users.OrderBy(user => user.FullName).Select(user => new { user.FullName, user.Email, user.Role, user.IsActive, user.RewardPoints }).ToListAsync();
         var pickups = await db.Pickups.Include(pickup => pickup.UserAccount).OrderByDescending(pickup => pickup.ScheduledFor).Select(pickup => new { pickup.ReferenceNumber, Member = pickup.UserAccount!.FullName, pickup.ScheduledFor, pickup.WasteType, pickup.Status, pickup.AssignedAgent, pickup.EstimatedWeightKg }).ToListAsync();
         var activity = await db.ActivityLogs.Include(log => log.UserAccount).OrderByDescending(log => log.CreatedAt).Select(log => new { Member = log.UserAccount!.FullName, log.Title, log.Detail, log.CreatedAt }).ToListAsync();
+        var redemptions = await db.RewardRedemptions.Include(item => item.UserAccount).Include(item => item.RewardCatalogueItem).OrderByDescending(item => item.CreatedAt).Select(item => new { Member = item.UserAccount!.FullName, Reward = item.RewardCatalogueItem!.Name, item.PointsSpent, item.Status, item.CreatedAt }).ToListAsync();
         var lines = new List<string> { "ReLoop system report", $"Generated (UTC),{DateTimeOffset.UtcNow:u}", "", "Summary", "Metric,Value" };
         lines.AddRange(overview.Metrics.Select(metric => $"{Csv(metric.Label)},{Csv(metric.Value)}"));
         lines.AddRange(["", "Members", "Name,Email,Role,Active,Reward points"]);
@@ -75,6 +76,8 @@ public sealed class AdminManagementService(ReLoopDbContext db)
         lines.AddRange(pickups.Select(pickup => $"{Csv(pickup.ReferenceNumber)},{Csv(pickup.Member)},{Csv(pickup.ScheduledFor.ToString("O"))},{Csv(pickup.WasteType)},{Csv(pickup.Status)},{Csv(pickup.AssignedAgent)},{Csv(pickup.EstimatedWeightKg?.ToString("0.00"))}"));
         lines.AddRange(["", "Recycling activity", "Member,Activity,Details,Date"]);
         lines.AddRange(activity.Select(item => $"{Csv(item.Member)},{Csv(item.Title)},{Csv(item.Detail)},{Csv(item.CreatedAt.ToString("O"))}"));
+        lines.AddRange(["", "Reward redemptions", "Member,Reward,Points spent,Status,Date"]);
+        lines.AddRange(redemptions.Select(item => $"{Csv(item.Member)},{Csv(item.Reward)},{item.PointsSpent},{Csv(item.Status)},{Csv(item.CreatedAt.ToString("O"))}"));
         return string.Join(Environment.NewLine, lines);
     }
 
