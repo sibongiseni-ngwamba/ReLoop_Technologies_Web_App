@@ -34,7 +34,7 @@ public static class ApiEndpointMappings
         {
             if (ValidationErrors(request) is { Count: > 0 } errors) return Results.ValidationProblem(errors);
             var identity = await identityService.VerifyIdTokenAsync(request.IdToken, context.RequestAborted);
-            if (identity is null) return Results.Problem(statusCode: 401, title: "Firebase authentication token is invalid or expired.");
+            if (identity is null) return Results.Problem(statusCode: 401, title: "Firebase authentication token is invalid, expired, revoked, or disabled.");
             var user = await store.EnsureUserAsync(identity);
             if (!user.IsActive) return Results.Problem(statusCode: 403, title: "This account is inactive.");
             await SignInAsync(context, user.UserId, user.FullName, user.Email, user.Role, request.KeepSignedIn);
@@ -45,8 +45,9 @@ public static class ApiEndpointMappings
         {
             if (ValidationErrors(request) is { Count: > 0 } errors) return Results.ValidationProblem(errors);
             var identity = await identityService.VerifyIdTokenAsync(request.IdToken, context.RequestAborted);
-            if (identity is null) return Results.Problem(statusCode: 401, title: "Firebase authentication token is invalid or expired.");
+            if (identity is null) return Results.Problem(statusCode: 401, title: "Firebase authentication token is invalid, expired, revoked, or disabled.");
             var user = await store.EnsureUserAsync(identity with { DisplayName = request.FullName.Trim() });
+            if (!user.IsActive) return Results.Problem(statusCode: 403, title: "This account is inactive.");
             await SignInAsync(context, user.UserId, user.FullName, user.Email, user.Role, true);
             return Results.Created("/Dashboard", new { user = user.FullName, role = user.Role });
         }).WithTags("Authentication");

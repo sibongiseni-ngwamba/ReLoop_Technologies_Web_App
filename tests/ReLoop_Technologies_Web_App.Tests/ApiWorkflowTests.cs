@@ -15,7 +15,7 @@ public sealed class ApiWorkflowTests : IDisposable
     public ApiWorkflowTests()
     {
         factory = new ReLoopWebApplicationFactory();
-        _client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
+        _client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, BaseAddress = new Uri("https://localhost") });
         _seed = SeedAsync(factory);
     }
 
@@ -54,6 +54,75 @@ public sealed class ApiWorkflowTests : IDisposable
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Contains("errors", body);
+    }
+
+    [Fact]
+    public async Task Login_rejects_expired_firebase_id_token()
+    {
+        var response = await _client.PostAsJsonAsync("/api/auth/login", new { idToken = "expired-token" });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Signup_rejects_a_deactivated_account()
+    {
+        await factory.Store.SaveAsync(FirestoreCollections.Users, "new-user-uid", new UserDocument
+        {
+            UserId = "new-user-uid", FirstName = "New", LastName = "User", Email = "new@example.com", Role = "Member", IsActive = false
+        });
+
+        var response = await _client.PostAsJsonAsync("/api/auth/signup", new { idToken = "new-user-token", fullName = "New User" });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Protected_pages_reject_direct_anonymous_access()
+    {
+        var anonymous = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, BaseAddress = new Uri("https://localhost") });
+
+        foreach (var path in new[] { "/Dashboard", "/Admin/Index" })
+        {
+            var response = await anonymous.GetAsync(path);
+            Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+            Assert.StartsWith("/Login", response.Headers.Location?.OriginalString ?? string.Empty);
+        }
+    }
+
+    [Fact]
+    public async Task Member_cannot_open_admin_page_or_assign_admin_role()
+    {
+        await SignInAsync();
+
+        var page = await _client.GetAsync("/Admin/Index");
+        var update = await _client.PutAsJsonAsync("/api/admin/users/member-uid", new
+        {
+            fullName = "Alex Rivera", role = "Admin", isActive = true,
+            address = "12 Circular Avenue", preferredCategory = "E-waste"
+        });
+
+        Assert.Equal(HttpStatusCode.Redirect, page.StatusCode);
+        Assert.StartsWith("/Login", page.Headers.Location?.OriginalString ?? string.Empty);
+        Assert.Equal(HttpStatusCode.Forbidden, update.StatusCode);
+    }
+
+    [Fact]
+    public async Task Deactivation_revokes_existing_application_sessions()
+    {
+        await SignInAsync();
+        using var admin = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, BaseAddress = new Uri("https://localhost") });
+        await admin.PostAsJsonAsync("/api/auth/login", new { idToken = "admin-token", keepSignedIn = true });
+
+        var update = await admin.PutAsJsonAsync("/api/admin/users/member-uid", new
+        {
+            fullName = "Alex Rivera", role = "Member", isActive = false,
+            address = "12 Circular Avenue", preferredCategory = "E-waste"
+        });
+        var profile = await _client.GetAsync("/api/profile");
+
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, profile.StatusCode);
     }
 
     [Fact]

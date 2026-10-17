@@ -23,7 +23,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizePage("/MyPickups");
     options.Conventions.AuthorizePage("/Profile");
     options.Conventions.AuthorizePage("/Logout");
-    options.Conventions.AuthorizePage("/Admin/Index", "AdminOnly");
+    options.Conventions.AuthorizeFolder("/Admin", "AdminOnly");
 });
 builder.Services.AddAuthorization(options => options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin")));
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
