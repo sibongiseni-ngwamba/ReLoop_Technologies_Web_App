@@ -1,0 +1,23 @@
+@page
+@{
+    ViewData["Title"] = "Services";
+}
+
+<section class="app-page public-page">
+    <div class="page-heading page-heading--centered">
+        <p class="landing-eyebrow">ReLoop services</p>
+        <h1>Every step of recycling, connected.</h1>
+        <p>Whether you are recycling at home or coordinating a local collection programme, ReLoop gives you a simple, trackable way forward.</p>
+    </div>
+
+    <div class="service-grid">
+        <article class="panel service-card"><span class="service-card__icon" aria-hidden="true">⌕</span><h2>Waste identification</h2><p>Upload a clear image to identify common materials, preparation steps, and likely reward value.</p><a class="text-link" asp-page="/ScanWaste">Scan an item <span aria-hidden="true">→</span></a></article>
+        <article class="panel service-card"><span class="service-card__icon" aria-hidden="true">▣</span><h2>Doorstep collection</h2><p>Choose a convenient collection window and keep a clear record of your collection status.</p><a class="text-link" asp-page="/SchedulePickup">Book a pickup <span aria-hidden="true">→</span></a></article>
+        <article class="panel service-card"><span class="service-card__icon" aria-hidden="true">✦</span><h2>Impact and rewards</h2><p>See scans, verified collections, diverted material, and eco-points in one personal dashboard.</p><a class="text-link" asp-page="/Dashboard">View your impact <span aria-hidden="true">→</span></a></article>
+    </div>
+
+    <section class="panel public-cta">
+        <div><p class="landing-eyebrow">Need a tailored programme?</p><h2>Partner with ReLoop</h2><p>We support collection partners, schools, businesses, and municipalities with a shared, auditable recycling workflow.</p></div>
+        <a class="reloop-btn reloop-btn--primary" asp-page="/Contact">Talk to our team <span aria-hidden="true">→</span></a>
+    </section>
+</section>

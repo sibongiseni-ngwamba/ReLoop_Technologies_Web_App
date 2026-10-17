@@ -6,13 +6,12 @@
 <section class="app-page admin-page js-admin-management">
     <div class="admin-layout">
         <aside class="admin-sidebar">
-            <strong>ReLoop Admin</strong>
-            <a class="is-active" href="#overview">Overview</a>
-            <a href="#users">Members</a>
-            <a href="#pickups">Pickups</a>
-            <a href="#activity">Recycling activity</a>
-            <a href="#rewards">Rewards</a>
-            <a href="/api/admin/reports/system.csv">Download report</a>
+            <strong>Admin Panel</strong>
+            <a class="is-active" asp-page="/Admin/Index">Overview</a>
+            <a asp-page="/Profile">User profile</a>
+            <a asp-page="/MyPickups">Active pickups</a>
+            <a asp-page="/Recycling">Environmental guide</a>
+            <a asp-page="/Contact">Partner support</a>
         </aside>
 
         <div class="admin-workspace">
@@ -22,7 +21,7 @@
                 <p>Manage members, collection operations, recycling activity, and circular rewards from current system data.</p>
             </div>
 
-            <div class="metric-grid" data-admin-metrics aria-live="polite"><p class="empty-state">Loading system summary…</p></div>
+            <div class="metric-grid" data-admin-metrics aria-live="polite"><p class="empty-state">Loading admin statistics…</p></div>
 
             <section class="panel admin-section" id="users"><div class="admin-section__header"><div><h2>Member accounts</h2><p>View details, change a role, or deactivate access.</p></div><label class="admin-search">Search <input data-admin-user-search type="search" placeholder="Name or email" /></label></div><div class="table-panel"><table class="app-table"><thead><tr><th>Member</th><th>Role</th><th>Points</th><th>Pickups</th><th>Access</th><th>Action</th></tr></thead><tbody data-admin-users><tr><td colspan="6">Loading…</td></tr></tbody></table></div><div class="admin-pagination" data-admin-users-pagination></div></section>
             <section class="panel admin-section" id="pickups"><div class="admin-section__header"><div><h2>Pickup management</h2><p>Assign a recycling agent and update collection status.</p></div><div class="admin-filter"><select data-admin-pickup-status><option>All</option><option>Scheduled</option><option>Assigned</option><option>Completed</option><option>Cancelled</option></select><input data-admin-pickup-search type="search" placeholder="Reference or member" /></div></div><div class="table-panel"><table class="app-table"><thead><tr><th>Reference</th><th>Member</th><th>Collection</th><th>Material</th><th>Agent</th><th>Status</th><th>Action</th></tr></thead><tbody data-admin-pickups><tr><td colspan="7">Loading…</td></tr></tbody></table></div><div class="admin-pagination" data-admin-pickups-pagination></div></section>
