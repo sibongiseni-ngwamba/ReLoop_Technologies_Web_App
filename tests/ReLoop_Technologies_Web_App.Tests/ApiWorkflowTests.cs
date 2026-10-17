@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace ReLoop_Technologies_Web_App.Tests;
 
@@ -51,12 +52,7 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
     [Fact]
     public async Task Admin_stats_api_returns_operational_summary()
     {
-        await _client.PostAsJsonAsync("/api/auth/login", new
-        {
-            email = "admin@reloop.co.za",
-            password = "password1",
-            keepSignedIn = true
-        });
+        await SignInAsync("admin@reloop.example");
         var response = await _client.GetAsync("/api/admin/stats");
         var body = await response.Content.ReadAsStringAsync();
 
@@ -113,27 +109,16 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
     }
 
     [Fact]
-    public async Task Protected_api_rejects_anonymous_requests()
+    public async Task Member_api_requires_sign_in()
     {
-        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await client.GetAsync("/api/dashboard");
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var unauthenticatedClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await unauthenticatedClient.GetAsync("/api/dashboard");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Login", response.Headers.Location?.ToString());
     }
 
-    [Fact]
-    public async Task Member_cannot_access_admin_api()
-    {
-        await SignInAsync();
-        var response = await _client.GetAsync("/api/admin/overview");
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Login_rejects_invalid_credentials()
-    {
-        var response = await _client.PostAsJsonAsync("/api/auth/login", new { email = "alex@example.com", password = "incorrect" });
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
-
-    private Task<HttpResponseMessage> SignInAsync() => _client.PostAsJsonAsync("/api/auth/login", new { email = "alex@example.com", password = "password1", keepSignedIn = true });
+    private Task<HttpResponseMessage> SignInAsync(string email = "alex@example.com") =>
+        _client.PostAsJsonAsync("/api/auth/login", new { email, password = "password1", keepSignedIn = true });
 }

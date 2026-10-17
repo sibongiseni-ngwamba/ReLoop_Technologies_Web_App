@@ -32,16 +32,22 @@
                 </span>
             </a>
 
+            <button class="reloop-menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation">
+                <span class="visually-hidden">Toggle navigation</span><span aria-hidden="true">☰</span>
+            </button>
             <partial name="_ShellNav" />
 
             <div class="reloop-topbar__actions">
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <a class="reloop-icon-button" asp-page="/Dashboard" aria-label="Dashboard"><span aria-hidden="true">⌂</span></a>
-                    <a class="reloop-avatar" asp-page="/Profile" aria-label="User profile">@User.Identity?.Name?.Substring(0, 1).ToUpperInvariant()</a>
-                    <a class="reloop-btn reloop-btn--secondary reloop-topbar__login" asp-page="/Logout">Logout</a>
+                    <a class="reloop-icon-button" asp-page="/Dashboard" aria-label="Open dashboard"><span aria-hidden="true">⌂</span></a>
+                    <a class="reloop-avatar" asp-page="/Profile" aria-label="User profile">@User.Identity.Name?.Substring(0, 1).ToUpperInvariant()</a>
                 }
-                else { <a class="reloop-btn reloop-btn--secondary reloop-topbar__login" asp-page="/Login">Login</a> }
+                else
+                {
+                    <a class="reloop-btn reloop-btn--secondary reloop-topbar__login" asp-page="/Login">Login</a>
+                    <a class="reloop-btn reloop-btn--primary reloop-topbar__login" asp-page="/SignUp">Join ReLoop</a>
+                }
             </div>
         </div>
     </header>
@@ -79,23 +85,33 @@
 
             <div class="reloop-footer__links">
                 <div>
-                    <h2>Platform</h2>
+                    <h2>Explore</h2>
                     <a asp-page="/Index">Home</a>
-                    <a asp-page="/Dashboard">Dashboard</a>
-                    <a asp-page="/ScanWaste">Scan Waste</a>
-                    <a asp-page="/SchedulePickup">Schedule Pickup</a>
+                    <a asp-page="/About">About</a>
+                    <a asp-page="/Services">Services</a>
+                    <a asp-page="/Recycling">Recycling guide</a>
                 </div>
                 <div>
                     <h2>Company</h2>
                     <a asp-page="/About">About</a>
+                    <a asp-page="/Services">Services</a>
+                    <a asp-page="/Recycling">Recycling guide</a>
                     <a asp-page="/Contact">Contact</a>
                     <a asp-page="/Privacy">Privacy</a>
                 </div>
                 <div>
                     <h2>Account</h2>
-                    <a asp-page="/Profile">Profile</a>
-                    <a asp-page="/MyPickups">My Pickups</a>
-                    <a asp-page="/Logout">Logout</a>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a asp-page="/Dashboard">My dashboard</a>
+                        <a asp-page="/Profile">Profile</a>
+                        <a asp-page="/Logout">Logout</a>
+                    }
+                    else
+                    {
+                        <a asp-page="/Login">Login</a>
+                        <a asp-page="/SignUp">Create account</a>
+                    }
                 </div>
             </div>
         </div>

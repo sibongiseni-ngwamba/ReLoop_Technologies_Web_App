@@ -121,7 +121,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
 
     public async Task<DashboardDto> GetDashboardAsync(string? email)
     {
-        var user = await RequireUserAsync(email);
+        var user = await GetUserByEmailAsync(email) ?? throw new InvalidOperationException("The signed-in user was not found.");
         var pickups = await dbContext.Pickups
             .Where(pickup => pickup.UserAccountId == user.Id)
             .OrderByDescending(pickup => pickup.ScheduledFor)
@@ -149,7 +149,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
 
     public async Task<IReadOnlyList<PickupDto>> GetPickupsAsync(string? email, string? status = null)
     {
-        var user = await RequireUserAsync(email);
+        var user = await GetUserByEmailAsync(email) ?? throw new InvalidOperationException("The signed-in user was not found.");
         var query = dbContext.Pickups.Where(pickup => pickup.UserAccountId == user.Id);
         if (!string.IsNullOrWhiteSpace(status) && !status.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
@@ -164,7 +164,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
 
     public async Task<PickupDto> CreatePickupAsync(string? email, CreatePickupRequest request)
     {
-        var user = await RequireUserAsync(email);
+        var user = await GetUserByEmailAsync(email) ?? throw new InvalidOperationException("The signed-in user was not found.");
         var pickup = new Pickup
         {
             Id = Guid.NewGuid(),
@@ -195,7 +195,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
 
     public async Task<ScanResultDto> ClassifyScanAsync(string? email, string fileName)
     {
-        var user = await RequireUserAsync(email);
+        var user = await GetUserByEmailAsync(email) ?? throw new InvalidOperationException("The signed-in user was not found.");
         var lower = fileName.ToLowerInvariant();
         var category = lower.Contains("glass") ? "Glass Bottles" : lower.Contains("paper") ? "Paper" : "Plastics (PET 1)";
         var item = category == "Paper" ? "Cardboard Sheet" : category == "Glass Bottles" ? "Glass Jar" : "Plastic Bottle";

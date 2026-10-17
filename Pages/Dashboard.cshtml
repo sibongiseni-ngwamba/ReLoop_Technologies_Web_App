@@ -10,7 +10,7 @@
         <p>Track impact, schedule pickups, and keep your verified recycling activity in one place.</p>
     </div>
 
-    <div class="metric-grid" data-dashboard-metrics></div>
+    <div class="metric-grid" data-dashboard-metrics aria-live="polite"><p class="empty-state">Loading your impact summary…</p></div>
 
     <div class="action-grid">
         <a class="action-card" asp-page="/ScanWaste"><span>Scan</span><strong>Classify a waste item</strong></a>
@@ -21,11 +21,11 @@
     <div class="content-grid">
         <section class="panel">
             <h2>Recent activity</h2>
-            <div class="activity-list" data-dashboard-activity></div>
+            <div class="activity-list" data-dashboard-activity aria-live="polite"><p class="empty-state">Loading recent activity…</p></div>
         </section>
         <section class="panel">
             <h2>Upcoming pickups</h2>
-            <div class="mini-table" data-dashboard-pickups></div>
+            <div class="mini-table" data-dashboard-pickups aria-live="polite"><p class="empty-state">Loading pickups…</p></div>
         </section>
     </div>
 </section>
