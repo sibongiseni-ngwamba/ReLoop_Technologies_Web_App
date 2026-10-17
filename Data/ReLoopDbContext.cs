@@ -62,6 +62,7 @@ public sealed class ReLoopDbContext(DbContextOptions<ReLoopDbContext> options) :
             entity.Property(pickup => pickup.WasteType).HasMaxLength(80).IsRequired();
             entity.Property(pickup => pickup.Status).HasMaxLength(40).IsRequired();
             entity.Property(pickup => pickup.Notes).HasMaxLength(500);
+            entity.Property(pickup => pickup.AssignedAgent).HasMaxLength(120);
             entity.Property(pickup => pickup.EstimatedWeightKg).HasPrecision(8, 2);
             entity.HasIndex(pickup => pickup.ReferenceNumber).IsUnique();
             entity.HasIndex(pickup => new { pickup.UserAccountId, pickup.Status, pickup.ScheduledFor });
