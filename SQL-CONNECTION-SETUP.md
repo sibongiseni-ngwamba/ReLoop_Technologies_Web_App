@@ -1,24 +1,13 @@
 # ReLoop SQL Connection Setup
 
-Issue 10 uses Entity Framework Core with SQL Server/Azure SQL.
+Keep database credentials out of `appsettings*.json`. For local development, store the connection string with ASP.NET Core User Secrets:
 
-## Where The Connection String Goes
-
-Place your connection string in `appsettings.Development.json` while working locally:
-
-```json
-"ConnectionStrings": {
-  "ReLoopDatabase": "Server=tcp:<your-server>.database.windows.net,1433;Initial Catalog=<your-database>;Persist Security Info=False;User ID=<your-user>;Password=<your-password>;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
-}
+```powershell
+dotnet user-secrets init
+dotnet user-secrets set "ConnectionStrings:ReLoopDatabase" "<your-connection-string>"
 ```
 
-For production, set the same key as an environment variable or cloud app setting:
-
-```text
-ConnectionStrings__ReLoopDatabase
-```
-
-Do not commit real Azure SQL passwords to Git.
+For production, inject `ConnectionStrings__ReLoopDatabase` from the hosting platform's secret store. The application fails fast outside the test environment if the setting is missing. Do not commit database passwords or put them in checked-in launch profiles.
 
 ## Create Or Update The Database
 
@@ -29,4 +18,4 @@ dotnet tool restore
 dotnet tool run dotnet-ef database update
 ```
 
-The migration creates users, pickups, scan records, activity logs, and reward ledger tables with seed data for the demo screens.
+Migrations create the user, pickup, scan, activity, reward catalogue/redemption, reward ledger, and contact-message tables.

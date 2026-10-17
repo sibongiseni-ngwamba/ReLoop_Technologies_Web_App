@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -6,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ReLoop_Technologies_Web_App.Data;
 using ReLoop_Technologies_Web_App.Models;
 using ReLoop_Technologies_Web_App.Services;
+using ReLoop_Technologies_Web_App.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +32,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LogoutPath = "/Logout";
         options.AccessDeniedPath = "/Login";
         options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Events.OnRedirectToLogin = context =>
         {
             if (context.Request.Path.StartsWithSegments("/api")) { context.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; }
@@ -55,17 +58,23 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             }
         };
     });
-builder.Services.AddDbContext<ReLoopDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("ReLoopDatabase")));
+var connectionString = builder.Configuration.GetConnectionString("ReLoopDatabase");
+if (string.IsNullOrWhiteSpace(connectionString) && !builder.Environment.IsEnvironment("Testing"))
+{
+    throw new InvalidOperationException("Configure ConnectionStrings:ReLoopDatabase using user-secrets or the ConnectionStrings__ReLoopDatabase environment variable.");
+}
+builder.Services.AddDbContext<ReLoopDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<ReLoopStore>();
 builder.Services.AddScoped<AdminManagementService>();
+builder.Services.AddScoped<MemberServices>();
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler();
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
@@ -79,119 +88,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
-
-app.MapPost("/api/auth/login", async (AuthRequest request, ReLoopStore store, HttpContext httpContext) =>
-{
-    var errors = Validate(request);
-    if (errors.Count > 0)
-    {
-        return Results.ValidationProblem(errors);
-    }
-
-    var user = await store.AuthenticateAsync(request.Email, request.Password);
-    if (user is null) return Results.Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Invalid email or password");
-    await SignInUserAsync(httpContext, user.FullName, user.Email, user.Role, request.KeepSignedIn);
-    return Results.Ok(new { user = user.FullName, role = user.Role });
-}).WithTags("Authentication");
-
-app.MapPost("/api/auth/signup", async (SignUpRequest request, ReLoopStore store, HttpContext httpContext) =>
-{
-    var errors = Validate(request);
-    if (errors.Count > 0)
-    {
-        return Results.ValidationProblem(errors);
-    }
-
-    var user = await store.CreateUserAsync(request.FullName, request.Email, request.Password);
-    if (user is null) return Results.Conflict(new { title = "An account already exists for this email.", errors = new Dictionary<string, string[]> { ["email"] = ["Use another email or sign in instead."] } });
-    await SignInUserAsync(httpContext, user.FullName, user.Email, user.Role, true);
-    return Results.Created("/Dashboard", new { user = user.FullName, role = user.Role });
-}).WithTags("Authentication");
-
-app.MapPost("/api/auth/logout", async (HttpContext httpContext) =>
-{
-    await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-    return Results.Ok(new { message = "Signed out" });
-}).WithTags("Authentication");
-app.MapGet("/api/auth/session", (HttpContext context) => Results.Ok(new { authenticated = context.User.Identity?.IsAuthenticated == true, name = context.User.Identity?.Name, role = context.User.FindFirstValue(ClaimTypes.Role) })).WithTags("Authentication");
-
-app.MapGet("/api/dashboard", async (ReLoopStore store, HttpContext context) => Results.Ok(await store.GetDashboardAsync(context.User.FindFirstValue(ClaimTypes.Email)))).RequireAuthorization().WithTags("Dashboard");
-app.MapGet("/api/pickups", async (ReLoopStore store, HttpContext context, string? status) => Results.Ok(await store.GetPickupsAsync(context.User.FindFirstValue(ClaimTypes.Email), status))).RequireAuthorization().WithTags("Pickups");
-app.MapPost("/api/pickups", async (CreatePickupRequest request, ReLoopStore store, HttpContext context) =>
-{
-    var errors = Validate(request);
-    if (errors.Count > 0)
-    {
-        return Results.ValidationProblem(errors);
-    }
-
-    return Results.Created("/api/pickups", await store.CreatePickupAsync(context.User.FindFirstValue(ClaimTypes.Email), request));
-}).RequireAuthorization().WithTags("Pickups");
-
-app.MapPost("/api/scan/classify", async (HttpRequest request, ReLoopStore store, HttpContext context) =>
-{
-    var fileName = request.Form.Files.FirstOrDefault()?.FileName ?? "plastic-bottle.jpg";
-    return Results.Ok(await store.ClassifyScanAsync(context.User.FindFirstValue(ClaimTypes.Email), fileName));
-}).RequireAuthorization().DisableAntiforgery().WithTags("Scan");
-
-app.MapGet("/api/admin/stats", async (ReLoopStore store) => Results.Ok(await store.GetAdminStatsAsync())).RequireAuthorization("AdminOnly").WithTags("Admin");
-app.MapGet("/api/rewards", () => Results.Ok(new { points = 1200, tier = "Circular Citizen", nextRewardAt = 1500 })).RequireAuthorization().WithTags("Rewards");
-app.MapGet("/api/profile", async (HttpContext httpContext, ReLoopStore store) =>
-    Results.Ok(await store.GetProfileAsync(httpContext.User.FindFirstValue(ClaimTypes.Email)))).RequireAuthorization().WithTags("Profile");
-app.MapPut("/api/profile", async (ProfileUpdateRequest request, HttpContext httpContext, ReLoopStore store) =>
-{
-    var errors = Validate(request);
-    if (errors.Count > 0)
-    {
-        return Results.ValidationProblem(errors);
-    }
-
-    var profile = await store.UpdateProfileAsync(httpContext.User.FindFirstValue(ClaimTypes.Email), request);
-    await SignInUserAsync(httpContext, profile.FullName, profile.Email, profile.Role, true);
-    return Results.Ok(profile);
-}).RequireAuthorization().WithTags("Profile");
-app.MapPost("/api/contact", async (ContactRequest request, ReLoopStore store) =>
-{
-    var errors = Validate(request);
-    if (errors.Count > 0)
-    {
-        return Results.ValidationProblem(errors);
-    }
-
-    var message = await store.CreateContactMessageAsync(request);
-    return Results.Created("/Contact", new { message.Id, message.Status });
-}).WithTags("Contact");
+app.MapReLoopApi();
 
 app.Run();
-
-static Dictionary<string, string[]> Validate<T>(T model)
-{
-    var context = new ValidationContext(model!);
-    var results = new List<ValidationResult>();
-    Validator.TryValidateObject(model!, context, results, true);
-
-    return results
-        .GroupBy(result => result.MemberNames.FirstOrDefault() ?? string.Empty)
-        .ToDictionary(group => group.Key, group => group.Select(result => result.ErrorMessage ?? "Invalid value").ToArray());
-}
-
-static async Task SignInUserAsync(HttpContext httpContext, string fullName, string email, string role, bool persistent)
-{
-    var claims = new List<Claim>
-    {
-        new(ClaimTypes.Name, fullName),
-        new(ClaimTypes.Email, email),
-        new(ClaimTypes.Role, role)
-    };
-    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-    await httpContext.SignInAsync(
-        CookieAuthenticationDefaults.AuthenticationScheme,
-        new ClaimsPrincipal(identity),
-        new AuthenticationProperties
-        {
-            IsPersistent = persistent,
-            ExpiresUtc = persistent ? DateTimeOffset.UtcNow.AddDays(14) : null
-        });
-}
 
 public partial class Program;

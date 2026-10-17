@@ -11,7 +11,7 @@ ReLoop is a recycling management web application built with ASP.NET Core Razor P
 - Doorstep pickup scheduling form with category selection and validation.
 - Pickup ledger with status filtering.
 - Admin command console with KPIs, waste distribution, and verification rows.
-- REST API endpoints for auth, dashboard, scan classification, pickups, admin stats, and rewards.
+- REST API endpoints for authentication, member profiles, pickups, rewards/redemptions, notifications, waste guidance, contact, and administrator operations/reports.
 - Entity Framework Core SQL Server/Azure SQL persistence with migrations and seed data.
 - xUnit integration tests and GitHub Actions CI workflow.
 
@@ -55,18 +55,11 @@ dotnet run --urls http://localhost:5299
 
 ## SQL Connection String
 
-For local development, place your SQL Server or Azure SQL connection string in:
+For local development, keep database credentials out of checked-in settings and store your SQL Server or Azure SQL connection string with User Secrets:
 
 ```text
-appsettings.Development.json
-```
-
-Use this key:
-
-```json
-"ConnectionStrings": {
-  "ReLoopDatabase": "Server=tcp:<your-server>.database.windows.net,1433;Initial Catalog=<your-database>;Persist Security Info=False;User ID=<your-user>;Password=<your-password>;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
-}
+dotnet user-secrets init
+dotnet user-secrets set "ConnectionStrings:ReLoopDatabase" "<your-connection-string>"
 ```
 
 For production hosting, set this environment variable or app setting instead of committing secrets:
