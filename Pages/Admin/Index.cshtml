@@ -7,11 +7,11 @@
     <div class="admin-layout">
         <aside class="admin-sidebar">
             <strong>Admin Panel</strong>
-            <a class="is-active" href="#overview">Overview</a>
-            <a href="#users">Users Management</a>
-            <a href="#pickups">Active Pickups</a>
-            <a href="#stats">Environmental Stats</a>
-            <a href="#partners">Partner Schedulers</a>
+            <a class="is-active" asp-page="/Admin/Index">Overview</a>
+            <a asp-page="/Profile">User profile</a>
+            <a asp-page="/MyPickups">Active pickups</a>
+            <a asp-page="/Recycling">Environmental guide</a>
+            <a asp-page="/Contact">Partner support</a>
         </aside>
 
         <div>
@@ -20,19 +20,19 @@
                 <p>Monitor municipal collection performance, eco verification logs, and reward activity.</p>
             </div>
 
-            <div class="metric-grid" data-admin-metrics></div>
+            <div class="metric-grid" data-admin-metrics aria-live="polite"><p class="empty-state">Loading admin statistics…</p></div>
 
             <div class="content-grid">
                 <section class="panel">
                     <h2>Waste Distribution by Type</h2>
                     <div class="donut" aria-label="Waste distribution chart"><span>1.87 Tons</span></div>
-                    <div class="legend" data-admin-legend></div>
+                    <div class="legend" data-admin-legend aria-live="polite"><p class="empty-state">Loading material breakdown…</p></div>
                 </section>
                 <section class="panel table-panel">
                     <h2>Recent pickups pending verification</h2>
                     <table class="app-table">
                         <thead><tr><th>User</th><th>Date Logged</th><th>Type</th><th>Est. Weight</th><th>Status</th></tr></thead>
-                        <tbody data-admin-table></tbody>
+                        <tbody data-admin-table><tr><td colspan="5" class="empty-state">Loading pickup records…</td></tr></tbody>
                     </table>
                 </section>
             </div>

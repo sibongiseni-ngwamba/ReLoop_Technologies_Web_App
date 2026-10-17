@@ -100,9 +100,9 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
         return message;
     }
 
-    public async Task<DashboardDto> GetDashboardAsync()
+    public async Task<DashboardDto> GetDashboardAsync(string? email)
     {
-        var user = await GetDemoUserAsync();
+        var user = await GetUserByEmailAsync(email) ?? throw new InvalidOperationException("The signed-in user was not found.");
         var pickups = await dbContext.Pickups
             .Where(pickup => pickup.UserAccountId == user.Id)
             .OrderByDescending(pickup => pickup.ScheduledFor)
@@ -128,9 +128,10 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
             pickups.Take(3).Select(ToPickupDto));
     }
 
-    public async Task<IReadOnlyList<PickupDto>> GetPickupsAsync(string? status = null)
+    public async Task<IReadOnlyList<PickupDto>> GetPickupsAsync(string? email, string? status = null)
     {
-        var query = dbContext.Pickups.Where(pickup => pickup.UserAccountId == DemoUserId);
+        var user = await GetUserByEmailAsync(email) ?? throw new InvalidOperationException("The signed-in user was not found.");
+        var query = dbContext.Pickups.Where(pickup => pickup.UserAccountId == user.Id);
         if (!string.IsNullOrWhiteSpace(status) && !status.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
             query = query.Where(pickup => pickup.Status == status);
@@ -142,12 +143,13 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
             .ToListAsync();
     }
 
-    public async Task<PickupDto> CreatePickupAsync(CreatePickupRequest request)
+    public async Task<PickupDto> CreatePickupAsync(string? email, CreatePickupRequest request)
     {
+        var user = await GetUserByEmailAsync(email) ?? throw new InvalidOperationException("The signed-in user was not found.");
         var pickup = new Pickup
         {
             Id = Guid.NewGuid(),
-            UserAccountId = DemoUserId,
+            UserAccountId = user.Id,
             ReferenceNumber = $"#LP-{Random.Shared.Next(9100, 9999)}",
             ScheduledFor = BuildPickupDate(request.PreferredDate, request.PreferredTimeWindow),
             Address = request.HomeAddress,
@@ -161,7 +163,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
         dbContext.ActivityLogs.Add(new ActivityLog
         {
             Id = Guid.NewGuid(),
-            UserAccountId = DemoUserId,
+            UserAccountId = user.Id,
             Title = "Pickup request submitted",
             Detail = $"{request.WasteCategory} collection created for {request.PreferredDate:dd MMM yyyy}",
             Tone = "info",
@@ -172,8 +174,9 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
         return ToPickupDto(pickup);
     }
 
-    public async Task<ScanResultDto> ClassifyScanAsync(string fileName)
+    public async Task<ScanResultDto> ClassifyScanAsync(string? email, string fileName)
     {
+        var user = await GetUserByEmailAsync(email) ?? throw new InvalidOperationException("The signed-in user was not found.");
         var lower = fileName.ToLowerInvariant();
         var category = lower.Contains("glass") ? "Glass Bottles" : lower.Contains("paper") ? "Paper" : "Plastics (PET 1)";
         var item = category == "Paper" ? "Cardboard Sheet" : category == "Glass Bottles" ? "Glass Jar" : "Plastic Bottle";
@@ -181,7 +184,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
         var result = new ScanRecord
         {
             Id = Guid.NewGuid(),
-            UserAccountId = DemoUserId,
+            UserAccountId = user.Id,
             ItemName = item,
             Disposition = "Recyclable",
             Category = category,
@@ -196,7 +199,7 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
         dbContext.ActivityLogs.Add(new ActivityLog
         {
             Id = Guid.NewGuid(),
-            UserAccountId = DemoUserId,
+            UserAccountId = user.Id,
             Title = $"{item} scan completed",
             Detail = $"{category} verified with high confidence",
             Tone = "success",

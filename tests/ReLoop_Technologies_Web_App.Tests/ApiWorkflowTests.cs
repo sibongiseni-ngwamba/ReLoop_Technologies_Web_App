@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace ReLoop_Technologies_Web_App.Tests;
 
@@ -10,6 +11,7 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
     [Fact]
     public async Task Dashboard_api_returns_seeded_metrics()
     {
+        await SignInAsync();
         var response = await _client.GetAsync("/api/dashboard");
         var body = await response.Content.ReadAsStringAsync();
 
@@ -31,6 +33,7 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
     [Fact]
     public async Task Pickup_creation_persists_to_ledger()
     {
+        await SignInAsync();
         var create = await _client.PostAsJsonAsync("/api/pickups", new
         {
             homeAddress = "99 Circular Loop Street",
@@ -49,6 +52,7 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
     [Fact]
     public async Task Admin_stats_api_returns_operational_summary()
     {
+        await SignInAsync("admin@reloop.example");
         var response = await _client.GetAsync("/api/admin/stats");
         var body = await response.Content.ReadAsStringAsync();
 
@@ -60,6 +64,7 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
     [Fact]
     public async Task Profile_can_be_loaded_and_updated()
     {
+        await SignInAsync();
         var current = await _client.GetStringAsync("/api/profile");
         Assert.Contains("Alex Rivera", current);
 
@@ -96,15 +101,24 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
     [Fact]
     public async Task Logout_endpoint_clears_session()
     {
-        var login = await _client.PostAsJsonAsync("/api/auth/login", new
-        {
-            email = "alex@example.com",
-            password = "password1",
-            keepSignedIn = true
-        });
+        var login = await SignInAsync();
         var logout = await _client.PostAsync("/api/auth/logout", null);
 
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         Assert.Equal(HttpStatusCode.OK, logout.StatusCode);
     }
+
+    [Fact]
+    public async Task Member_api_requires_sign_in()
+    {
+        var unauthenticatedClient = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await unauthenticatedClient.GetAsync("/api/dashboard");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Login", response.Headers.Location?.ToString());
+    }
+
+    private Task<HttpResponseMessage> SignInAsync(string email = "alex@example.com") =>
+        _client.PostAsJsonAsync("/api/auth/login", new { email, password = "password1", keepSignedIn = true });
 }
