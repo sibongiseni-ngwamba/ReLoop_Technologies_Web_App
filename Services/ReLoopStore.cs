@@ -23,7 +23,8 @@ public sealed class ReLoopStore(ReLoopDbContext dbContext)
             FullName = fullName,
             Email = email,
             PasswordHash = $"demo-{password.Length}-chars",
-            Role = email.Contains("admin", StringComparison.OrdinalIgnoreCase) ? "Admin" : "Member",
+            // Privileged roles are assigned through controlled administration, never inferred from an email address.
+            Role = "Member",
             Address = "452 Eco Circular Ave, Suite 3B",
             PreferredCategory = "Recyclables",
             CreatedAt = DateTimeOffset.UtcNow

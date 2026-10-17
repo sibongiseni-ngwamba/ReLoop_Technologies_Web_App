@@ -11,6 +11,8 @@ public sealed class ReLoopDbContext(DbContextOptions<ReLoopDbContext> options) :
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
     public DbSet<RewardLedgerEntry> RewardLedger => Set<RewardLedgerEntry>();
     public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
+    public DbSet<RewardCatalogueItem> RewardCatalogue => Set<RewardCatalogueItem>();
+    public DbSet<RewardRedemption> RewardRedemptions => Set<RewardRedemption>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,6 +26,21 @@ public sealed class ReLoopDbContext(DbContextOptions<ReLoopDbContext> options) :
             entity.Property(user => user.Address).HasMaxLength(240).IsRequired();
             entity.Property(user => user.PreferredCategory).HasMaxLength(80).IsRequired();
             entity.HasIndex(user => user.Email).IsUnique();
+        });
+
+        modelBuilder.Entity<RewardCatalogueItem>(entity =>
+        {
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.Name).HasMaxLength(120).IsRequired();
+            entity.Property(item => item.Description).HasMaxLength(400).IsRequired();
+        });
+
+        modelBuilder.Entity<RewardRedemption>(entity =>
+        {
+            entity.HasKey(redemption => redemption.Id);
+            entity.Property(redemption => redemption.Status).HasMaxLength(40).IsRequired();
+            entity.HasOne(redemption => redemption.UserAccount).WithMany().HasForeignKey(redemption => redemption.UserAccountId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(redemption => redemption.RewardCatalogueItem).WithMany().HasForeignKey(redemption => redemption.RewardCatalogueItemId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ContactMessage>(entity =>
@@ -121,5 +138,9 @@ public sealed class ReLoopDbContext(DbContextOptions<ReLoopDbContext> options) :
 
         modelBuilder.Entity<RewardLedgerEntry>().HasData(
             new RewardLedgerEntry { Id = new Guid("1da8585b-e266-4d25-98b3-9e0206c5545b"), UserAccountId = userId, Points = 10, Reason = "Plastic Bottle scan verified", CreatedAt = new DateTimeOffset(2025, 5, 10, 10, 15, 0, TimeSpan.Zero) });
+
+        modelBuilder.Entity<RewardCatalogueItem>().HasData(
+            new RewardCatalogueItem { Id = new Guid("ab0a3cb8-a41a-4b22-b541-d775f4f0b2d2"), Name = "R50 partner voucher", Description = "Redeemable at participating circular-economy partners.", PointsCost = 500, IsActive = true, CreatedAt = new DateTimeOffset(2025, 5, 1, 8, 0, 0, TimeSpan.Zero) },
+            new RewardCatalogueItem { Id = new Guid("cd0a3cb8-a41a-4b22-b541-d775f4f0b2d2"), Name = "Tree planting contribution", Description = "Fund a verified indigenous tree planting contribution.", PointsCost = 250, IsActive = true, CreatedAt = new DateTimeOffset(2025, 5, 1, 8, 0, 0, TimeSpan.Zero) });
     }
 }

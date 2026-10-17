@@ -3,39 +3,34 @@
     ViewData["Title"] = "Admin Console";
 }
 
-<section class="app-page admin-page js-admin">
+<section class="app-page admin-page js-admin-management">
     <div class="admin-layout">
         <aside class="admin-sidebar">
-            <strong>Admin Panel</strong>
+            <strong>ReLoop Admin</strong>
             <a class="is-active" href="#overview">Overview</a>
-            <a href="#users">Users Management</a>
-            <a href="#pickups">Active Pickups</a>
-            <a href="#stats">Environmental Stats</a>
-            <a href="#partners">Partner Schedulers</a>
+            <a href="#users">Members</a>
+            <a href="#pickups">Pickups</a>
+            <a href="#activity">Recycling activity</a>
+            <a href="#rewards">Rewards</a>
+            <a href="/api/admin/reports/system.csv">Download report</a>
         </aside>
 
-        <div>
-            <div class="page-heading">
-                <h1>Admin Command Console</h1>
-                <p>Monitor municipal collection performance, eco verification logs, and reward activity.</p>
+        <div class="admin-workspace">
+            <div class="page-heading" id="overview">
+                <p class="landing-eyebrow">Authorised workspace</p>
+                <h1>Operations dashboard</h1>
+                <p>Manage members, collection operations, recycling activity, and circular rewards from current system data.</p>
             </div>
 
-            <div class="metric-grid" data-admin-metrics></div>
+            <div class="metric-grid" data-admin-metrics aria-live="polite"><p class="empty-state">Loading system summary…</p></div>
 
-            <div class="content-grid">
-                <section class="panel">
-                    <h2>Waste Distribution by Type</h2>
-                    <div class="donut" aria-label="Waste distribution chart"><span>1.87 Tons</span></div>
-                    <div class="legend" data-admin-legend></div>
-                </section>
-                <section class="panel table-panel">
-                    <h2>Recent pickups pending verification</h2>
-                    <table class="app-table">
-                        <thead><tr><th>User</th><th>Date Logged</th><th>Type</th><th>Est. Weight</th><th>Status</th></tr></thead>
-                        <tbody data-admin-table></tbody>
-                    </table>
-                </section>
-            </div>
+            <section class="panel admin-section" id="users"><div class="admin-section__header"><div><h2>Member accounts</h2><p>View details, change a role, or deactivate access.</p></div><label class="admin-search">Search <input data-admin-user-search type="search" placeholder="Name or email" /></label></div><div class="table-panel"><table class="app-table"><thead><tr><th>Member</th><th>Role</th><th>Points</th><th>Pickups</th><th>Access</th><th>Action</th></tr></thead><tbody data-admin-users><tr><td colspan="6">Loading…</td></tr></tbody></table></div><div class="admin-pagination" data-admin-users-pagination></div></section>
+            <section class="panel admin-section" id="pickups"><div class="admin-section__header"><div><h2>Pickup management</h2><p>Assign a recycling agent and update collection status.</p></div><div class="admin-filter"><select data-admin-pickup-status><option>All</option><option>Scheduled</option><option>Assigned</option><option>Completed</option><option>Cancelled</option></select><input data-admin-pickup-search type="search" placeholder="Reference or member" /></div></div><div class="table-panel"><table class="app-table"><thead><tr><th>Reference</th><th>Member</th><th>Collection</th><th>Material</th><th>Agent</th><th>Status</th><th>Action</th></tr></thead><tbody data-admin-pickups><tr><td colspan="7">Loading…</td></tr></tbody></table></div><div class="admin-pagination" data-admin-pickups-pagination></div></section>
+            <section class="panel admin-section" id="activity"><div class="admin-section__header"><div><h2>Recycling activity</h2><p>Latest scans, collection events, and reward activity.</p></div></div><div class="table-panel"><table class="app-table"><thead><tr><th>Member</th><th>Activity</th><th>Details</th><th>Date</th></tr></thead><tbody data-admin-activity><tr><td colspan="4">Loading…</td></tr></tbody></table></div></section>
+            <section class="panel admin-section" id="rewards"><div class="admin-section__header"><div><h2>Reward catalogue &amp; redemptions</h2><p>Create catalogue offers and oversee fulfilment.</p></div><button class="reloop-btn reloop-btn--primary" type="button" data-admin-new-reward>New reward</button></div><div class="table-panel"><table class="app-table"><thead><tr><th>Reward</th><th>Cost</th><th>Availability</th><th>Action</th></tr></thead><tbody data-admin-rewards><tr><td colspan="4">Loading…</td></tr></tbody></table></div><h3 class="admin-subheading">Redemption oversight</h3><div class="table-panel"><table class="app-table"><thead><tr><th>Member</th><th>Reward</th><th>Points</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead><tbody data-admin-redemptions><tr><td colspan="6">Loading…</td></tr></tbody></table></div></section>
+            <p class="form-status" data-admin-status aria-live="polite"></p>
         </div>
     </div>
 </section>
+
+<dialog class="admin-dialog" data-admin-dialog><form method="dialog" data-admin-editor><div data-admin-editor-fields></div><div class="button-pair"><button class="reloop-btn reloop-btn--primary" type="submit">Save changes</button><button class="reloop-btn reloop-btn--secondary" type="button" data-admin-cancel>Cancel</button></div><p class="form-status" data-admin-editor-status aria-live="polite"></p></form></dialog>

@@ -49,6 +49,12 @@ public sealed class ApiWorkflowTests(ReLoopWebApplicationFactory factory) : ICla
     [Fact]
     public async Task Admin_stats_api_returns_operational_summary()
     {
+        await _client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email = "admin@reloop.co.za",
+            password = "password1",
+            keepSignedIn = true
+        });
         var response = await _client.GetAsync("/api/admin/stats");
         var body = await response.Content.ReadAsStringAsync();
 

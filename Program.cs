@@ -14,7 +14,8 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 // Add services to the container.
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options => options.Conventions.AuthorizePage("/Admin/Index", "AdminOnly"));
+builder.Services.AddAuthorization(options => options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin")));
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -25,6 +26,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddDbContext<ReLoopDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ReLoopDatabase")));
 builder.Services.AddScoped<ReLoopStore>();
+builder.Services.AddScoped<AdminManagementService>();
 
 var app = builder.Build();
 
@@ -97,7 +99,27 @@ app.MapPost("/api/scan/classify", async (HttpRequest request, ReLoopStore store)
     return Results.Ok(await store.ClassifyScanAsync(fileName));
 }).DisableAntiforgery().WithTags("Scan");
 
-app.MapGet("/api/admin/stats", async (ReLoopStore store) => Results.Ok(await store.GetAdminStatsAsync())).WithTags("Admin");
+app.MapGet("/api/admin/stats", async (ReLoopStore store) => Results.Ok(await store.GetAdminStatsAsync())).RequireAuthorization("AdminOnly").WithTags("Admin");
+app.MapGet("/api/admin/overview", async (AdminManagementService service) => Results.Ok(await service.GetOverviewAsync())).RequireAuthorization("AdminOnly");
+app.MapGet("/api/admin/users", async (AdminManagementService service, string? search, int page = 1, int pageSize = 10) => Results.Ok(await service.GetUsersAsync(search, page, pageSize))).RequireAuthorization("AdminOnly");
+app.MapPut("/api/admin/users/{id:guid}", async (Guid id, AdminUserUpdateRequest request, AdminManagementService service) =>
+{
+    var errors = Validate(request); if (errors.Count > 0) return Results.ValidationProblem(errors);
+    var user = await service.UpdateUserAsync(id, request); return user is null ? Results.NotFound() : Results.Ok(user);
+}).RequireAuthorization("AdminOnly");
+app.MapGet("/api/admin/pickups", async (AdminManagementService service, string? status, string? search, int page = 1, int pageSize = 10) => Results.Ok(await service.GetPickupsAsync(status, search, page, pageSize))).RequireAuthorization("AdminOnly");
+app.MapPut("/api/admin/pickups/{id:guid}", async (Guid id, AdminPickupUpdateRequest request, AdminManagementService service) =>
+{
+    var errors = Validate(request); if (errors.Count > 0) return Results.ValidationProblem(errors);
+    var pickup = await service.UpdatePickupAsync(id, request); return pickup is null ? Results.NotFound() : Results.Ok(pickup);
+}).RequireAuthorization("AdminOnly");
+app.MapGet("/api/admin/activity", async (AdminManagementService service, int page = 1, int pageSize = 10) => Results.Ok(await service.GetActivityAsync(page, pageSize))).RequireAuthorization("AdminOnly");
+app.MapGet("/api/admin/rewards", async (AdminManagementService service) => Results.Ok(await service.GetRewardsAsync())).RequireAuthorization("AdminOnly");
+app.MapPost("/api/admin/rewards", async (RewardCatalogueRequest request, AdminManagementService service) => { var errors = Validate(request); return errors.Count > 0 ? Results.ValidationProblem(errors) : Results.Created("/api/admin/rewards", await service.CreateRewardAsync(request)); }).RequireAuthorization("AdminOnly");
+app.MapPut("/api/admin/rewards/{id:guid}", async (Guid id, RewardCatalogueRequest request, AdminManagementService service) => { var errors = Validate(request); if (errors.Count > 0) return Results.ValidationProblem(errors); var reward = await service.UpdateRewardAsync(id, request); return reward is null ? Results.NotFound() : Results.Ok(reward); }).RequireAuthorization("AdminOnly");
+app.MapGet("/api/admin/redemptions", async (AdminManagementService service, int page = 1, int pageSize = 10) => Results.Ok(await service.GetRedemptionsAsync(page, pageSize))).RequireAuthorization("AdminOnly");
+app.MapPut("/api/admin/redemptions/{id:guid}", async (Guid id, RedemptionUpdateRequest request, AdminManagementService service) => { var errors = Validate(request); if (errors.Count > 0) return Results.ValidationProblem(errors); var redemption = await service.UpdateRedemptionAsync(id, request); return redemption is null ? Results.NotFound() : Results.Ok(redemption); }).RequireAuthorization("AdminOnly");
+app.MapGet("/api/admin/reports/system.csv", async (AdminManagementService service) => Results.File(System.Text.Encoding.UTF8.GetBytes(await service.BuildReportAsync()), "text/csv", "reloop-system-report.csv")).RequireAuthorization("AdminOnly");
 app.MapGet("/api/rewards", () => Results.Ok(new { points = 1200, tier = "Circular Citizen", nextRewardAt = 1500 })).WithTags("Rewards");
 app.MapGet("/api/profile", async (HttpContext httpContext, ReLoopStore store) =>
     Results.Ok(await store.GetProfileAsync(httpContext.User.FindFirstValue(ClaimTypes.Email)))).WithTags("Profile");
