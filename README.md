@@ -171,3 +171,17 @@ The images below are the supplied wireframes and brand references used for the i
 - Firebase Auth handles passwords. The server verifies Firebase ID tokens and authorizes the secure application session against the current Firestore user role and active state.
 - Scan classification is a deterministic demo classifier based on filename hints until an AI/image model is connected.
 - Scan classification and points are recorded in Firestore; production image recognition still requires a connected model.
+
+---
+
+## Team
+
+Work is on GitHub under [sibongiseni-ngwamba/ReLoop_Technologies_Web_App]([https://github.com/RtCzee/SideHustle](https://github.com/sibongiseni-ngwamba/ReLoop_Technologies_Web_App.git)).
+
+| GitHub | Name |
+| --- | --- |
+| [sibongiseni-ngwamba](https://github.com/sibongiseni-ngwamba) | Sibongiseni Ngwamaba |
+| [Thokozani Masondo](https://github.com/Globoysosa) | Thokozani Masondo |
+| [tirisano-trigga](https://github.com/tirisanomolaolwe-byte) | Tirisano Molaolwe |
+| [Katleho Kwakwari](https://github.com/Katleho-1) | Katleho Kwakwari |
+| [Katlego Makhuba](https://github.com/st10366193) | Katlego Makhuba |
