@@ -176,7 +176,7 @@ The images below are the supplied wireframes and brand references used for the i
 
 ## Team
 
-Work is on GitHub under [sibongiseni-ngwamba/ReLoop_Technologies_Web_App]([https://github.com/RtCzee/SideHustle](https://github.com/sibongiseni-ngwamba/ReLoop_Technologies_Web_App.git)).
+Work is on GitHub under [sibongiseni-ngwamba/ReLoop_Technologies_Web_App](https://github.com/sibongiseni-ngwamba/ReLoop_Technologies_Web_App).
 
 | GitHub | Name |
 | --- | --- |
