@@ -2,6 +2,10 @@
 
 ReLoop is a recycling management web application built with ASP.NET Core Razor Pages. It supports Firebase Authentication, waste scan classification, pickup scheduling, pickup history, rewards, administrator management, and Cloud Firestore persistence shared with the mobile app.
 
+## Web Diagram 
+
+[![Architecture diagram of sibongiseni-ngwamba/reloop_technologies_web_app](https://gitdiagram.com/sibongiseni-ngwamba/reloop_technologies_web_app/diagram.png)](https://gitdiagram.com/sibongiseni-ngwamba/reloop_technologies_web_app?utm_source=readme&utm_medium=picture)
+
 ## Features
 
 - Landing page based on the ReLoop visual design.
