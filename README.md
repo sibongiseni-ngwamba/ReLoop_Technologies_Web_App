@@ -1,173 +1,45 @@
-# ReLoop Technologies Web App
+# ReLoop Technologies
 
-ReLoop is a recycling management web application built with ASP.NET Core Razor Pages. It supports Firebase Authentication, waste scan classification, pickup scheduling, pickup history, rewards, administrator management, and Cloud Firestore persistence shared with the mobile app.
+ReLoop is a recycling management web app and Android app backed by one Supabase project. The ASP.NET Core app provides the web portal and its REST API; the Android app currently calls the Supabase `reloop-api` Edge Function. Both use Supabase Auth and the same normalized Postgres tables so member activity and administrator changes are shared.
 
-## Features
+## Projects
 
-- Landing page based on the ReLoop visual design.
-- Login and sign-up pages with client-side and API validation.
-- User dashboard with impact metrics, activity, quick actions, and upcoming pickups.
-- Waste scan upload flow with classification result details.
-- Doorstep pickup scheduling form with category selection and validation.
-- Pickup ledger with status filtering.
-- Admin command console with KPIs, waste distribution, and verification rows.
-- REST API endpoints for authentication, member profiles, pickups, rewards/redemptions, notifications, waste guidance, contact, and administrator operations/reports.
-- Firebase Authentication (Email/Password), server-verified Firebase ID tokens, and an HTTP-only application session cookie.
-- Cloud Firestore persistence shared with the mobile app.
-- Administrator-only management pages and endpoints.
-- A repeatable, opt-in demo-data seeder for the ERD collections.
-- xUnit tests and GitHub Actions workflows for CI and optional Cloud Run deployment.
+- **Web app and REST API:** ASP.NET Core Razor Pages, .NET 8. API routes are under `/api`; administrator routes are protected by the current profile role.
+- **Mobile app:** Android/Kotlin at `C:/Users/ngwam_m1r7qi5/AndroidStudioProjects/ReLoop_Technologies_Mobile_App/`. It uses Supabase Auth and `/functions/v1/reloop-api`.
+- **Database and identity:** Supabase project `pjsrpajqslyamavbvyxz` (the same project configured in the mobile app).
 
-## Tech Stack
+For API routes, setup, and deployment steps, see [backend/README.md](backend/README.md).
 
-- ASP.NET Core Razor Pages
-- .NET 8
-- Firebase Authentication
-- Cloud Firestore
-- Bootstrap assets and project CSS
-- xUnit, ASP.NET Core TestHost, in-memory document store for tests
+## Run the web app locally
 
-## Run Locally
-
-The website runs locally without deploying it to Google Cloud. From the repository directory, run:
+Install the .NET 8 SDK. At the repository root, configure local Supabase settings and run the app:
 
 ```powershell
-dotnet restore
+dotnet user-secrets set "Supabase:Url" "https://pjsrpajqslyamavbvyxz.supabase.co"
+dotnet user-secrets set "Supabase:AnonKey" "<Supabase publishable key>"
+dotnet user-secrets set "Supabase:ConnectionString" "<PostgreSQL connection string>"
 dotnet run --project ReLoop_Technologies_Web_App.csproj
 ```
 
-Keep that terminal open while using the site. The app uses Firebase Authentication and the shared Firestore project, so local records are stored in the cloud Firestore database rather than in a local database.
+The app opens at `http://localhost:5197` or `https://localhost:7036`. Use a Supabase database connection string in **secret storage only**. The publishable key is intended for client use; never place a database password or secret/service-role key in browser or Android code.
 
-The project launch settings use:
+## Admin access
 
-```text
-http://localhost:5197
-https://localhost:7036
-```
+The app reads roles from the shared `profiles` table. To grant the first administrator, sign up that person through Supabase Auth and update their `profiles.role` to `admin` using the Supabase SQL editor or an authorized admin process. Refresh their web session afterward. The API supports administrator management of users, pickups, rewards, redemptions, reports, and activity; see the backend README.
 
-If that port is already being used, run:
+## Data and migrations
 
-```powershell
-dotnet run --urls http://localhost:5299
-```
+Versioned Supabase SQL migrations are in `supabase/migrations`. The initial schema and catalogue seed match the mobile app schema; the later migration adds web-only profile, pickup, scan, guidance, and contact fields. They are deployed by the Supabase workflow. Keep the web and Android schema copies aligned when changing shared tables.
 
-## Firebase Configuration
+The old Firebase project is not modified or deleted by this repository. Existing Firebase Auth users must be imported into Supabase Auth and reset their passwords as part of a planned migration. Review the Android repository's `backend/migration` instructions and back up the Firebase data before cutover. Do not switch production traffic until imported records, Auth accounts, RLS, and administrator access are verified.
 
-The shared Firebase project ID is `relooptechnologies-2eda2`; the app uses the `(default)` Firestore database. The Firebase web-app configuration is public client configuration. The server accesses Firestore using Google Application Default Credentials (ADC) locally and a hosting identity when deployed. Never commit a service-account JSON key.
+## Deployment
 
-```text
-dotnet user-secrets set "Firebase:WebApiKey" "<Firebase web API key>"
-dotnet user-secrets set "Firebase:WebAppId" "<Firebase web app ID>"
-dotnet user-secrets set "Firebase:AuthDomain" "<Firebase auth domain>"
-```
+- Supabase database migrations: `.github/workflows/deploy-supabase.yml`
+- Web/API container: `.github/workflows/deploy-cloud-run.yml`
 
-Run these commands in a terminal opened at the repository directory, replacing each placeholder with the corresponding value from the Firebase web app configuration. The project already has a User Secrets ID, so `dotnet user-secrets init` is not needed. Alternatively, provide `Firebase__WebApiKey`, `Firebase__WebAppId`, and `Firebase__AuthDomain` as environment variables.
+The workflows require repository Actions secrets and variables described in [backend/README.md](backend/README.md). They do not create a Supabase project or export/import Firebase data.
 
-For local Firestore access, install the Google Cloud CLI and sign in with Application Default Credentials if this has not already been done:
+## Tests and QA
 
-```powershell
-gcloud auth application-default login
-```
-
-The signed-in Google account must have permission to access Firestore in the shared project. This login is for the local server's database access; it does not deploy the app. Firebase Authentication and Firestore have their own usage limits and plan terms.
-
-The app does not create Firebase resources. Firebase Authentication, the Firestore database, and access permissions must already be configured in the Firebase/Google Cloud project. Firebase web API key and app ID are not server secrets, but must correspond to this project.
-
-The data model is documented in `Data/FirestoreDocuments.cs` and matches the shared ERD. Firestore security rules are in [firestore.rules](firestore.rules); composite indexes are in [firestore.indexes.json](firestore.indexes.json). The server uses Admin SDK/service credentials and must enforce authorization in the application; these client rules do not restrict trusted server credentials.
-
-## Optional Cloud Run Deployment
-
-Cloud Run is optional. It is not required to run the app locally or to use Firebase Authentication and Firestore. Google Cloud deployment requires a billing-enabled Google Cloud project and can incur charges; do not configure or enable it if you cannot accept that possibility. See [Cloud Run pricing](https://cloud.google.com/run/pricing).
-
-The workflow in `.github/workflows/deploy-cloud-run.yml` runs tests and then deploys pushes to `all-updates`. It requires Google Cloud APIs, Cloud Run identities, and GitHub Workload Identity Federation to be configured first. It uses GitHub OIDC rather than a downloaded service-account key. Its repository Actions variables are:
-
-- `GCP_WORKLOAD_IDENTITY_PROVIDER`
-- `GCP_DEPLOY_SERVICE_ACCOUNT`
-- `GCP_RUNTIME_SERVICE_ACCOUNT`
-- `GCP_REGION`
-- `CLOUD_RUN_SERVICE`
-- `FIREBASE_WEB_API_KEY`
-- `FIREBASE_WEB_APP_ID`
-- `FIREBASE_AUTH_DOMAIN`
-
-The Cloud Run runtime identity needs Firestore access. Firebase web configuration values are public client configuration; never place a service-account JSON key in GitHub or this repository. If Cloud Run is not configured, the deployment part of this workflow will fail; the local app and Firebase data are unaffected.
-
-## Demo Data
-
-The demo seed utility can create five clearly prefixed sample documents in each of the 11 ERD collections (55 documents total). It creates no Firebase Authentication accounts or administrators. It is never run automatically and skips already-existing demo IDs. Run it locally after ADC is configured; preview first:
-
-```powershell
-dotnet run --project tools/FirestoreDemoSeed -- --project-id relooptechnologies-2eda2
-```
-
-Only after reviewing the dry-run output, explicitly write the 55 demo documents to the shared Firestore project:
-
-```powershell
-dotnet run --project tools/FirestoreDemoSeed -- --project-id relooptechnologies-2eda2 --apply --confirm-live-demo-data
-```
-
-Demo user records use `example.invalid` email addresses and cannot sign in. Do not promote them to administrators. Create a real Firebase Authentication account for any administrator and assign its role through the authorized project-owner/admin process. Ask for the first-admin setup steps before changing roles in Firestore.
-
-## Shared Firestore Data Model
-
-The ERD below is the Firestore collection model shared by the website and its mobile counterpart.
-
-![ReLoop Technologies Firestore ERD](docs/wireframes/reloop-firestore-erd.png)
-
-## Testing
-
-Run all tests:
-
-```powershell
-dotnet test
-```
-
-The test project uses an in-memory Firestore document-store substitute and fake verified identities, so tests do not contact Firebase. The CI workflow is `.github/workflows/dotnet-ci.yml`; the optional deployment workflow also runs the tests before deploying.
-
-The manual QA checklist is in [QA-CHECKLIST.md](QA-CHECKLIST.md).
-
-## Wireframes
-
-The images below are the supplied wireframes and brand references used for the implementation.
-
-### Landing Page
-
-![Landing page wireframe](docs/wireframes/01-landing.jpeg)
-
-### Login Page
-
-![Login page wireframe](docs/wireframes/02-login.jpeg)
-
-### Admin Dashboard
-
-![Admin dashboard wireframe](docs/wireframes/03-admin-dashboard.jpeg)
-
-### Scan Upload Page
-
-![Scan upload wireframe](docs/wireframes/04-scan-upload.jpeg)
-
-### Scan Result Page
-
-![Scan result wireframe](docs/wireframes/05-scan-result.jpeg)
-
-### Schedule Pickup Page
-
-![Schedule pickup wireframe](docs/wireframes/06-schedule-pickup.jpeg)
-
-### Pickup Ledger Page
-
-![Pickup ledger wireframe](docs/wireframes/07-pickup-ledger.jpeg)
-
-### App Logo
-
-![App logo reference](docs/wireframes/08-app-logo.jpeg)
-
-### Brand Logo
-
-![Brand logo reference](docs/wireframes/09-brand-logo.jpeg)
-
-## Notes
-
-- Firebase Auth handles passwords. The server verifies Firebase ID tokens and authorizes the secure application session against the current Firestore user role and active state.
-- Scan classification is a deterministic demo classifier based on filename hints until an AI/image model is connected.
-- Scan classification and points are recorded in Firestore; production image recognition still requires a connected model.
+Run the existing .NET test suite with `dotnet test`. QA scenarios are in [QA-CHECKLIST.md](QA-CHECKLIST.md).

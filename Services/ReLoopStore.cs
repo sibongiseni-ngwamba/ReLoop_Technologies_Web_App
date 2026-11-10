@@ -5,9 +5,9 @@ namespace ReLoop_Technologies_Web_App.Services;
 
 public sealed class ReLoopStore(IReLoopDocumentStore documents)
 {
-    public async Task<UserDocument> EnsureUserAsync(FirebaseIdentity identity)
+    public async Task<UserDocument> EnsureUserAsync(SupabaseIdentity identity)
     {
-        var user = await documents.GetAsync<UserDocument>(FirestoreCollections.Users, identity.Uid);
+        var user = await documents.GetAsync<UserDocument>(ReLoopCollections.Users, identity.Uid);
         if (user is not null) return user;
 
         var (firstName, lastName) = SplitName(identity.DisplayName);
@@ -22,8 +22,8 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        await documents.SaveAsync(FirestoreCollections.Users, user.UserId, user);
-        await documents.SaveAsync(FirestoreCollections.Rewards, user.UserId, new RewardAccountDocument { UserId = user.UserId });
+        await documents.SaveAsync(ReLoopCollections.Users, user.UserId, user);
+        await documents.SaveAsync(ReLoopCollections.Rewards, user.UserId, new RewardAccountDocument { UserId = user.UserId });
         return user;
     }
 
@@ -34,16 +34,16 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
     public async Task<bool> IsSessionValidAsync(string? uid, string? role)
     {
         if (string.IsNullOrWhiteSpace(uid)) return false;
-        var user = await documents.GetAsync<UserDocument>(FirestoreCollections.Users, uid);
+        var user = await documents.GetAsync<UserDocument>(ReLoopCollections.Users, uid);
         return user is { IsActive: true } && string.Equals(user.Role, role, StringComparison.Ordinal);
     }
 
     public async Task<ProfileDto> GetProfileAsync(string? uid)
     {
         var user = await RequireUserAsync(uid);
-        var rewards = await documents.GetAsync<RewardAccountDocument>(FirestoreCollections.Rewards, user.UserId);
-        var scans = await documents.ListAsync<WasteLogDocument>(FirestoreCollections.WasteLogs);
-        var pickups = await documents.ListAsync<PickupDocument>(FirestoreCollections.Pickups);
+        var rewards = await documents.GetAsync<RewardAccountDocument>(ReLoopCollections.Rewards, user.UserId);
+        var scans = await documents.ListAsync<WasteLogDocument>(ReLoopCollections.WasteLogs);
+        var pickups = await documents.ListAsync<PickupDocument>(ReLoopCollections.Pickups);
         return new ProfileDto(user.FullName, user.Email, user.Role, user.Address, user.PreferredCategory, rewards?.PointsBalance ?? 0,
             scans.Count(scan => scan.UserId == user.UserId), pickups.Count(pickup => pickup.UserId == user.UserId));
     }
@@ -52,7 +52,7 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
     {
         var user = await RequireUserAsync(uid);
         var email = request.Email.Trim().ToLowerInvariant();
-        var duplicate = (await documents.ListAsync<UserDocument>(FirestoreCollections.Users)).Any(candidate => candidate.UserId != user.UserId && candidate.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+        var duplicate = (await documents.ListAsync<UserDocument>(ReLoopCollections.Users)).Any(candidate => candidate.UserId != user.UserId && candidate.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
         if (duplicate) throw new InvalidOperationException("An account already exists for this email address.");
         var (firstName, lastName) = SplitName(request.FullName.Trim());
         user.FirstName = firstName;
@@ -61,7 +61,7 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
         user.Address = request.Address.Trim();
         user.PreferredCategory = request.PreferredCategory.Trim();
         user.UpdatedAt = DateTime.UtcNow;
-        await documents.SaveAsync(FirestoreCollections.Users, user.UserId, user);
+        await documents.SaveAsync(ReLoopCollections.Users, user.UserId, user);
         await AddNotificationAsync(user.UserId, "Profile updated", "Account and recycling preferences were refreshed", "info");
         return await GetProfileAsync(user.UserId);
     }
@@ -73,18 +73,18 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
             ContactId = Guid.NewGuid().ToString(), FullName = request.FullName.Trim(), Email = request.Email.Trim().ToLowerInvariant(),
             Subject = request.Subject.Trim(), Message = request.Message.Trim(), Status = "New", CreatedAt = DateTime.UtcNow
         };
-        await documents.SaveAsync(FirestoreCollections.ContactMessages, message.ContactId, message);
+        await documents.SaveAsync(ReLoopCollections.ContactMessages, message.ContactId, message);
         return message;
     }
 
     public async Task<DashboardDto> GetDashboardAsync(string? uid)
     {
         var user = await RequireUserAsync(uid);
-        var pickups = (await documents.ListAsync<PickupDocument>(FirestoreCollections.Pickups)).Where(item => item.UserId == user.UserId).OrderByDescending(item => item.ScheduledDate).ToList();
-        var scans = (await documents.ListAsync<WasteLogDocument>(FirestoreCollections.WasteLogs)).Where(item => item.UserId == user.UserId).ToList();
-        var notifications = (await documents.ListAsync<NotificationDocument>(FirestoreCollections.Notifications)).Where(item => item.UserId == user.UserId).OrderByDescending(item => item.CreatedAt).Take(6)
+        var pickups = (await documents.ListAsync<PickupDocument>(ReLoopCollections.Pickups)).Where(item => item.UserId == user.UserId).OrderByDescending(item => item.ScheduledDate).ToList();
+        var scans = (await documents.ListAsync<WasteLogDocument>(ReLoopCollections.WasteLogs)).Where(item => item.UserId == user.UserId).ToList();
+        var notifications = (await documents.ListAsync<NotificationDocument>(ReLoopCollections.Notifications)).Where(item => item.UserId == user.UserId).OrderByDescending(item => item.CreatedAt).Take(6)
             .Select(item => new ActivityDto(item.Title, item.Message, FormatDate(item.CreatedAt), item.Type)).ToList();
-        var rewards = await documents.GetAsync<RewardAccountDocument>(FirestoreCollections.Rewards, user.UserId);
+        var rewards = await documents.GetAsync<RewardAccountDocument>(ReLoopCollections.Rewards, user.UserId);
         var completedWeight = pickups.Where(item => item.WeightKg.HasValue && item.Status == "Completed").Sum(item => item.WeightKg!.Value);
 
         return new DashboardDto(user.FullName,
@@ -99,7 +99,7 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
     public async Task<IReadOnlyList<PickupDto>> GetPickupsAsync(string? uid, string? status = null)
     {
         var user = await RequireUserAsync(uid);
-        var pickups = (await documents.ListAsync<PickupDocument>(FirestoreCollections.Pickups)).Where(item => item.UserId == user.UserId);
+        var pickups = (await documents.ListAsync<PickupDocument>(ReLoopCollections.Pickups)).Where(item => item.UserId == user.UserId);
         if (!string.IsNullOrWhiteSpace(status) && !status.Equals("All", StringComparison.OrdinalIgnoreCase)) pickups = pickups.Where(item => item.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
         return pickups.OrderByDescending(item => item.ScheduledDate).Select(ToPickupDto).ToArray();
     }
@@ -118,8 +118,8 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
         var notification = NewNotification(user.UserId, "Pickup request submitted", $"{request.WasteCategory} collection created for {request.PreferredDate:dd MMM yyyy}", "info", id);
         await documents.RunTransactionAsync<object?>(transaction =>
         {
-            transaction.Set(FirestoreCollections.Pickups, id, pickup);
-            transaction.Set(FirestoreCollections.Notifications, notification.NotificationId, notification);
+            transaction.Set(ReLoopCollections.Pickups, id, pickup);
+            transaction.Set(ReLoopCollections.Notifications, notification.NotificationId, notification);
             return Task.FromResult<object?>(null);
         });
         return ToPickupDto(pickup);
@@ -129,11 +129,12 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
     {
         var user = await RequireUserAsync(uid);
         var lower = fileName.ToLowerInvariant();
-        var categoryName = lower.Contains("glass") ? "Glass" : lower.Contains("paper") ? "Paper" : lower.Contains("metal") ? "Metal" : "Plastic";
-        var category = (await documents.ListAsync<WasteCategoryDocument>(FirestoreCollections.WasteCategories)).FirstOrDefault(item => item.CategoryName.Equals(categoryName, StringComparison.OrdinalIgnoreCase));
-        if (category is null || !category.IsActive) throw new InvalidOperationException($"The {categoryName} waste category is not configured in Firestore.");
-        var item = categoryName switch { "Paper" => "Cardboard Sheet", "Glass" => "Glass Jar", "Metal" => "Aluminium Can", _ => "Plastic Bottle" };
-        var points = categoryName switch { "Glass" => 14, "Paper" => 8, "Metal" => 12, _ => 10 };
+        var categoryHint = lower.Contains("glass") ? "glass" : lower.Contains("paper") ? "paper" : lower.Contains("metal") ? "metal" : "plastic";
+        var category = (await documents.ListAsync<WasteCategoryDocument>(ReLoopCollections.WasteCategories))
+            .FirstOrDefault(item => item.IsActive && item.CategoryName.Contains(categoryHint, StringComparison.OrdinalIgnoreCase));
+        if (category is null) throw new InvalidOperationException($"The {categoryHint} waste category is not configured in Supabase.");
+        var item = categoryHint switch { "paper" => "Cardboard Sheet", "glass" => "Glass Jar", "metal" => "Aluminium Can", _ => "Plastic Bottle" };
+        var points = categoryHint switch { "glass" => 14, "paper" => 8, "metal" => 12, _ => 10 };
         var scan = new WasteLogDocument
         {
             WasteLogId = Guid.NewGuid().ToString(), UserId = user.UserId, WasteCategoryId = category.WasteCategoryId,
@@ -148,14 +149,14 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
         var notification = NewNotification(user.UserId, $"{item} scan completed", $"{category.CategoryName} verified with high confidence", "success");
         await documents.RunTransactionAsync<object?>(async transaction =>
         {
-            var balance = await transaction.GetAsync<RewardAccountDocument>(FirestoreCollections.Rewards, user.UserId) ?? new RewardAccountDocument { UserId = user.UserId };
+            var balance = await transaction.GetAsync<RewardAccountDocument>(ReLoopCollections.Rewards, user.UserId) ?? new RewardAccountDocument { UserId = user.UserId };
             balance.PointsBalance += points;
             balance.TotalEarned += points;
             balance.LastUpdated = DateTime.UtcNow;
-            transaction.Set(FirestoreCollections.Rewards, user.UserId, balance);
-            transaction.Set(FirestoreCollections.WasteLogs, scan.WasteLogId, scan);
-            transaction.Set(FirestoreCollections.PointsTransactions, tx.TransactionId, tx);
-            transaction.Set(FirestoreCollections.Notifications, notification.NotificationId, notification);
+            transaction.Set(ReLoopCollections.Rewards, user.UserId, balance);
+            transaction.Set(ReLoopCollections.WasteLogs, scan.WasteLogId, scan);
+            transaction.Set(ReLoopCollections.PointsTransactions, tx.TransactionId, tx);
+            transaction.Set(ReLoopCollections.Notifications, notification.NotificationId, notification);
             return null;
         });
         return new ScanResultDto(item, scan.Disposition, category.CategoryName, "0.2 kg", points, 94, DateTimeOffset.UtcNow);
@@ -163,10 +164,10 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
 
     public async Task<AdminStatsDto> GetAdminStatsAsync()
     {
-        var users = await documents.ListAsync<UserDocument>(FirestoreCollections.Users);
-        var scans = await documents.ListAsync<WasteLogDocument>(FirestoreCollections.WasteLogs);
-        var pickups = await documents.ListAsync<PickupDocument>(FirestoreCollections.Pickups);
-        var transactions = await documents.ListAsync<PointsTransactionDocument>(FirestoreCollections.PointsTransactions);
+        var users = await documents.ListAsync<UserDocument>(ReLoopCollections.Users);
+        var scans = await documents.ListAsync<WasteLogDocument>(ReLoopCollections.WasteLogs);
+        var pickups = await documents.ListAsync<PickupDocument>(ReLoopCollections.Pickups);
+        var transactions = await documents.ListAsync<PointsTransactionDocument>(ReLoopCollections.PointsTransactions);
         var activeUsers = users.Count(user => user.IsActive);
         var weight = pickups.Where(item => item.WeightKg.HasValue && item.Status == "Completed").Sum(item => item.WeightKg!.Value);
         var types = scans.GroupBy(scan => scan.ModelLabel ?? scan.WasteCategoryId).Select(group => new { Type = group.Key, Count = group.Count() }).ToList();
@@ -179,9 +180,9 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
 
     public async Task<IReadOnlyList<WasteGuidanceDto>> GetWasteGuidanceAsync(string? categoryName = null)
     {
-        var categories = await documents.ListAsync<WasteCategoryDocument>(FirestoreCollections.WasteCategories);
+        var categories = await documents.ListAsync<WasteCategoryDocument>(ReLoopCollections.WasteCategories);
         var categoryById = categories.ToDictionary(item => item.WasteCategoryId, StringComparer.OrdinalIgnoreCase);
-        var guidance = await documents.ListAsync<GuidanceContentDocument>(FirestoreCollections.GuidanceContent);
+        var guidance = await documents.ListAsync<GuidanceContentDocument>(ReLoopCollections.GuidanceContent);
         var activeGuidance = guidance.Where(item => item.IsActive && categoryById.ContainsKey(item.WasteCategoryId));
         if (!string.IsNullOrWhiteSpace(categoryName))
             activeGuidance = activeGuidance.Where(item => categoryById[item.WasteCategoryId].CategoryName.Equals(categoryName, StringComparison.OrdinalIgnoreCase));
@@ -190,34 +191,34 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
             string.Join(", ", item.AcceptedItems), string.Join(", ", item.ExcludedItems))).ToArray();
     }
 
-    public async Task<UserDocument?> GetUserAsync(string uid) => await documents.GetAsync<UserDocument>(FirestoreCollections.Users, uid);
-    public Task SaveUserAsync(UserDocument user) => documents.SaveAsync(FirestoreCollections.Users, user.UserId, user);
-    public Task<IReadOnlyList<UserDocument>> GetUsersAsync() => documents.ListAsync<UserDocument>(FirestoreCollections.Users);
-    public Task<IReadOnlyList<PickupDocument>> GetAllPickupsAsync() => documents.ListAsync<PickupDocument>(FirestoreCollections.Pickups);
-    public Task<IReadOnlyList<WasteLogDocument>> GetAllScansAsync() => documents.ListAsync<WasteLogDocument>(FirestoreCollections.WasteLogs);
-    public Task<IReadOnlyList<NotificationDocument>> GetAllNotificationsAsync() => documents.ListAsync<NotificationDocument>(FirestoreCollections.Notifications);
-    public Task<IReadOnlyList<AgentDocument>> GetAgentsAsync() => documents.ListAsync<AgentDocument>(FirestoreCollections.Agents);
-    public Task<IReadOnlyList<RewardItemDocument>> GetRewardItemsAsync() => documents.ListAsync<RewardItemDocument>(FirestoreCollections.RewardItems);
-    public Task<IReadOnlyList<RedemptionLogDocument>> GetRedemptionsAsync() => documents.ListAsync<RedemptionLogDocument>(FirestoreCollections.RedemptionLogs);
-    public Task<IReadOnlyList<WasteCategoryDocument>> GetWasteCategoriesAsync() => documents.ListAsync<WasteCategoryDocument>(FirestoreCollections.WasteCategories);
-    public Task<IReadOnlyList<GuidanceContentDocument>> GetGuidanceAsync() => documents.ListAsync<GuidanceContentDocument>(FirestoreCollections.GuidanceContent);
-    public Task SavePickupAsync(PickupDocument pickup) => documents.SaveAsync(FirestoreCollections.Pickups, pickup.PickupId, pickup);
-    public Task SaveRewardItemAsync(RewardItemDocument reward) => documents.SaveAsync(FirestoreCollections.RewardItems, reward.RewardItemId, reward);
-    public Task SaveRedemptionAsync(RedemptionLogDocument redemption) => documents.SaveAsync(FirestoreCollections.RedemptionLogs, redemption.RedemptionId, redemption);
-    public Task SaveNotificationAsync(NotificationDocument notification) => documents.SaveAsync(FirestoreCollections.Notifications, notification.NotificationId, notification);
-    public Task SavePointsTransactionAsync(PointsTransactionDocument transaction) => documents.SaveAsync(FirestoreCollections.PointsTransactions, transaction.TransactionId, transaction);
+    public async Task<UserDocument?> GetUserAsync(string uid) => await documents.GetAsync<UserDocument>(ReLoopCollections.Users, uid);
+    public Task SaveUserAsync(UserDocument user) => documents.SaveAsync(ReLoopCollections.Users, user.UserId, user);
+    public Task<IReadOnlyList<UserDocument>> GetUsersAsync() => documents.ListAsync<UserDocument>(ReLoopCollections.Users);
+    public Task<IReadOnlyList<PickupDocument>> GetAllPickupsAsync() => documents.ListAsync<PickupDocument>(ReLoopCollections.Pickups);
+    public Task<IReadOnlyList<WasteLogDocument>> GetAllScansAsync() => documents.ListAsync<WasteLogDocument>(ReLoopCollections.WasteLogs);
+    public Task<IReadOnlyList<NotificationDocument>> GetAllNotificationsAsync() => documents.ListAsync<NotificationDocument>(ReLoopCollections.Notifications);
+    public Task<IReadOnlyList<AgentDocument>> GetAgentsAsync() => documents.ListAsync<AgentDocument>(ReLoopCollections.Agents);
+    public Task<IReadOnlyList<RewardItemDocument>> GetRewardItemsAsync() => documents.ListAsync<RewardItemDocument>(ReLoopCollections.RewardItems);
+    public Task<IReadOnlyList<RedemptionLogDocument>> GetRedemptionsAsync() => documents.ListAsync<RedemptionLogDocument>(ReLoopCollections.RedemptionLogs);
+    public Task<IReadOnlyList<WasteCategoryDocument>> GetWasteCategoriesAsync() => documents.ListAsync<WasteCategoryDocument>(ReLoopCollections.WasteCategories);
+    public Task<IReadOnlyList<GuidanceContentDocument>> GetGuidanceAsync() => documents.ListAsync<GuidanceContentDocument>(ReLoopCollections.GuidanceContent);
+    public Task SavePickupAsync(PickupDocument pickup) => documents.SaveAsync(ReLoopCollections.Pickups, pickup.PickupId, pickup);
+    public Task SaveRewardItemAsync(RewardItemDocument reward) => documents.SaveAsync(ReLoopCollections.RewardItems, reward.RewardItemId, reward);
+    public Task SaveRedemptionAsync(RedemptionLogDocument redemption) => documents.SaveAsync(ReLoopCollections.RedemptionLogs, redemption.RedemptionId, redemption);
+    public Task SaveNotificationAsync(NotificationDocument notification) => documents.SaveAsync(ReLoopCollections.Notifications, notification.NotificationId, notification);
+    public Task SavePointsTransactionAsync(PointsTransactionDocument transaction) => documents.SaveAsync(ReLoopCollections.PointsTransactions, transaction.TransactionId, transaction);
 
     private async Task<UserDocument?> FindUserByEmailAsync(string email) =>
-        (await documents.ListAsync<UserDocument>(FirestoreCollections.Users)).FirstOrDefault(user => user.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+        (await documents.ListAsync<UserDocument>(ReLoopCollections.Users)).FirstOrDefault(user => user.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
 
     private async Task<UserDocument> RequireUserAsync(string? uid) =>
-        (!string.IsNullOrWhiteSpace(uid) ? await documents.GetAsync<UserDocument>(FirestoreCollections.Users, uid) : null)
+        (!string.IsNullOrWhiteSpace(uid) ? await documents.GetAsync<UserDocument>(ReLoopCollections.Users, uid) : null)
         ?? throw new InvalidOperationException("The signed-in account could not be found.");
 
     private async Task AddNotificationAsync(string uid, string title, string message, string type, string? pickupId = null)
     {
         var notification = NewNotification(uid, title, message, type, pickupId);
-        await documents.SaveAsync(FirestoreCollections.Notifications, notification.NotificationId, notification);
+        await documents.SaveAsync(ReLoopCollections.Notifications, notification.NotificationId, notification);
     }
 
     private static NotificationDocument NewNotification(string uid, string title, string message, string type, string? pickupId = null) => new()
@@ -243,7 +244,7 @@ public sealed class ReLoopStore(IReLoopDocumentStore documents)
 }
 
 
-public static class FirestoreCollections
+public static class ReLoopCollections
 {
     public const string Users = "users";
     public const string Agents = "agents";

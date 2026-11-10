@@ -21,14 +21,14 @@ public sealed class ApiWorkflowTests : IDisposable
 
     private static async Task SeedAsync(ReLoopWebApplicationFactory factory)
     {
-        await factory.Store.SaveAsync(FirestoreCollections.Users, "admin-uid", new UserDocument { UserId = "admin-uid", FirstName = "ReLoop", LastName = "Admin", Email = "admin@reloop.co.za", Role = "Admin" });
-        await factory.Store.SaveAsync(FirestoreCollections.Users, "member-uid", new UserDocument { UserId = "member-uid", FirstName = "Alex", LastName = "Rivera", Email = "alex@example.com", Role = "Member" });
-        await factory.Store.SaveAsync(FirestoreCollections.Rewards, "member-uid", new RewardAccountDocument { UserId = "member-uid", PointsBalance = 1200, TotalEarned = 1200 });
-        await factory.Store.SaveAsync(FirestoreCollections.RewardItems, "b5a53cb8-a41a-4b22-b541-d775f4f0b2d2", new RewardItemDocument { RewardItemId = "b5a53cb8-a41a-4b22-b541-d775f4f0b2d2", ItemName = "Reusable Bottle", Description = "A stainless reusable bottle", PointsCost = 500 });
-        await factory.Store.SaveAsync(FirestoreCollections.WasteCategories, "plastic", new WasteCategoryDocument { WasteCategoryId = "plastic", CategoryName = "Plastic", ModelLabel = "Plastic" });
-        await factory.Store.SaveAsync(FirestoreCollections.GuidanceContent, "plastic-guide", new GuidanceContentDocument { GuidanceId = "plastic-guide", WasteCategoryId = "plastic", Title = "Plastic recycling", Content = "Rinse and sort plastic containers.", Preparation = "Rinse containers before recycling." });
-        await factory.Store.SaveAsync(FirestoreCollections.Notifications, "scan-notification", new NotificationDocument { NotificationId = "scan-notification", UserId = "member-uid", Title = "Plastic bottle scan saved", Message = "Plastic bottle scan saved", Type = "success" });
-        await factory.Store.SaveAsync(FirestoreCollections.WasteLogs, "plastic-scan", new WasteLogDocument { WasteLogId = "plastic-scan", UserId = "member-uid", WasteCategoryId = "plastic", ItemName = "Plastic bottle", ModelLabel = "Plastic", LoggedAt = DateTime.UtcNow });
+        await factory.Store.SaveAsync(ReLoopCollections.Users, "admin-uid", new UserDocument { UserId = "admin-uid", FirstName = "ReLoop", LastName = "Admin", Email = "admin@reloop.co.za", Role = "Admin" });
+        await factory.Store.SaveAsync(ReLoopCollections.Users, "member-uid", new UserDocument { UserId = "member-uid", FirstName = "Alex", LastName = "Rivera", Email = "alex@example.com", Role = "Member" });
+        await factory.Store.SaveAsync(ReLoopCollections.Rewards, "member-uid", new RewardAccountDocument { UserId = "member-uid", PointsBalance = 1200, TotalEarned = 1200 });
+        await factory.Store.SaveAsync(ReLoopCollections.RewardItems, "b5a53cb8-a41a-4b22-b541-d775f4f0b2d2", new RewardItemDocument { RewardItemId = "b5a53cb8-a41a-4b22-b541-d775f4f0b2d2", ItemName = "Reusable Bottle", Description = "A stainless reusable bottle", PointsCost = 500 });
+        await factory.Store.SaveAsync(ReLoopCollections.WasteCategories, "plastic", new WasteCategoryDocument { WasteCategoryId = "plastic", CategoryName = "Plastic", ModelLabel = "Plastic" });
+        await factory.Store.SaveAsync(ReLoopCollections.GuidanceContent, "plastic-guide", new GuidanceContentDocument { GuidanceId = "plastic-guide", WasteCategoryId = "plastic", Title = "Plastic recycling", Content = "Rinse and sort plastic containers.", Preparation = "Rinse containers before recycling." });
+        await factory.Store.SaveAsync(ReLoopCollections.Notifications, "scan-notification", new NotificationDocument { NotificationId = "scan-notification", UserId = "member-uid", Title = "Plastic bottle scan saved", Message = "Plastic bottle scan saved", Type = "success" });
+        await factory.Store.SaveAsync(ReLoopCollections.WasteLogs, "plastic-scan", new WasteLogDocument { WasteLogId = "plastic-scan", UserId = "member-uid", WasteCategoryId = "plastic", ItemName = "Plastic bottle", ModelLabel = "Plastic", LoggedAt = DateTime.UtcNow });
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public sealed class ApiWorkflowTests : IDisposable
     [Fact]
     public async Task Signup_rejects_a_deactivated_account()
     {
-        await factory.Store.SaveAsync(FirestoreCollections.Users, "new-user-uid", new UserDocument
+        await factory.Store.SaveAsync(ReLoopCollections.Users, "new-user-uid", new UserDocument
         {
             UserId = "new-user-uid", FirstName = "New", LastName = "User", Email = "new@example.com", Role = "Member", IsActive = false
         });
