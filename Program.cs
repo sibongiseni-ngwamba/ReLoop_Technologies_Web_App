@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Google.Api.Gax;
+using Google.Cloud.Firestore;
 using ReLoop_Technologies_Web_App.Data;
 using ReLoop_Technologies_Web_App.Models;
 using ReLoop_Technologies_Web_App.Services;
@@ -57,15 +59,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             }
         };
     });
-var supabaseUrl = builder.Configuration["Supabase:Url"]?.TrimEnd('/');
-var supabaseAnonKey = builder.Configuration["Supabase:AnonKey"];
-var supabaseConnectionString = builder.Configuration["Supabase:ConnectionString"];
-if (string.IsNullOrWhiteSpace(supabaseUrl) || string.IsNullOrWhiteSpace(supabaseAnonKey) || string.IsNullOrWhiteSpace(supabaseConnectionString))
+var firebaseProjectId = builder.Configuration["Firebase:ProjectId"];
+var firestoreDatabaseId = builder.Configuration["Firebase:DatabaseId"] ?? "(default)";
+if (string.IsNullOrWhiteSpace(firebaseProjectId))
 {
-    throw new InvalidOperationException("Configure Supabase:Url, Supabase:AnonKey, and Supabase:ConnectionString.");
+    throw new InvalidOperationException("Configure Firebase:ProjectId for the shared ReLoop Firebase project.");
 }
-builder.Services.AddSingleton<IReLoopDocumentStore>(_ => new SupabaseDocumentStore(supabaseConnectionString));
-builder.Services.AddHttpClient<ISupabaseIdentityService, SupabaseIdentityService>(client => client.BaseAddress = new Uri(supabaseUrl));
+builder.Services.AddSingleton(_ => new FirestoreDbBuilder { ProjectId = firebaseProjectId, DatabaseId = firestoreDatabaseId, EmulatorDetection = EmulatorDetection.EmulatorOrProduction }.Build());
+builder.Services.AddSingleton<IReLoopDocumentStore, FirestoreDocumentStore>();
+builder.Services.AddSingleton<IFirebaseIdentityService>(_ => new FirebaseIdentityService(firebaseProjectId));
 builder.Services.AddScoped<ReLoopStore>();
 builder.Services.AddScoped<AdminManagementService>();
 builder.Services.AddScoped<MemberServices>();

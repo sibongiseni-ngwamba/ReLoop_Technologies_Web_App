@@ -18,16 +18,16 @@ public sealed class ReLoopWebApplicationFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<IReLoopDocumentStore>();
             services.AddSingleton<IReLoopDocumentStore>(Store);
-            services.RemoveAll<ISupabaseIdentityService>();
-            services.AddSingleton<ISupabaseIdentityService, TestSupabaseIdentityService>();
+            services.RemoveAll<IFirebaseIdentityService>();
+            services.AddSingleton<IFirebaseIdentityService, TestFirebaseIdentityService>();
         });
     }
 }
 
-public sealed class TestSupabaseIdentityService : ISupabaseIdentityService
+public sealed class TestFirebaseIdentityService : IFirebaseIdentityService
 {
-    public Task<SupabaseIdentity?> VerifyAccessTokenAsync(string idToken, CancellationToken cancellationToken = default) =>
-        Task.FromResult<SupabaseIdentity?>(idToken switch
+    public Task<FirebaseIdentity?> VerifyIdTokenAsync(string idToken, CancellationToken cancellationToken = default) =>
+        Task.FromResult<FirebaseIdentity?>(idToken switch
         {
             "member-token" => new("member-uid", "alex@example.com", "Alex Rivera"),
             "admin-token" => new("admin-uid", "admin@reloop.co.za", "ReLoop Admin"),

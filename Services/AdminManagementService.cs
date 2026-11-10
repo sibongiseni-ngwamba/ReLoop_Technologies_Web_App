@@ -30,7 +30,7 @@ public sealed class AdminManagementService(ReLoopStore store, IReLoopDocumentSto
         if (!string.IsNullOrWhiteSpace(search)) query = query.Where(user => user.FullName.Contains(search, StringComparison.OrdinalIgnoreCase) || user.Email.Contains(search, StringComparison.OrdinalIgnoreCase));
         var items = query.OrderByDescending(user => user.CreatedAt).Select(user => new AdminUserDto(user.UserId, user.FullName, user.Email, user.Role, user.IsActive,
             0, pickups.Count(pickup => pickup.UserId == user.UserId), user.CreatedAt.ToString("dd MMM yyyy"), user.Address, user.PreferredCategory)).ToList();
-        var rewards = await documents.ListAsync<RewardAccountDocument>(ReLoopCollections.Rewards);
+        var rewards = await documents.ListAsync<RewardAccountDocument>(FirestoreCollections.Rewards);
         items = items.Select(item => item with { RewardPoints = rewards.FirstOrDefault(reward => reward.UserId == item.Id)?.PointsBalance ?? 0 }).ToList();
         return Page(items, page, pageSize);
     }
@@ -43,7 +43,7 @@ public sealed class AdminManagementService(ReLoopStore store, IReLoopDocumentSto
         user.FirstName = firstName; user.LastName = lastName; user.Role = request.Role; user.IsActive = request.IsActive;
         user.Address = request.Address; user.UpdatedAt = DateTime.UtcNow;
         await store.SaveUserAsync(user);
-        var rewards = await documents.GetAsync<RewardAccountDocument>(ReLoopCollections.Rewards, uid);
+        var rewards = await documents.GetAsync<RewardAccountDocument>(FirestoreCollections.Rewards, uid);
         var pickups = await store.GetAllPickupsAsync();
         return new AdminUserDto(user.UserId, user.FullName, user.Email, user.Role, user.IsActive, rewards?.PointsBalance ?? 0,
             pickups.Count(pickup => pickup.UserId == uid), user.CreatedAt.ToString("dd MMM yyyy"), user.Address, user.PreferredCategory);
@@ -63,7 +63,7 @@ public sealed class AdminManagementService(ReLoopStore store, IReLoopDocumentSto
 
     public async Task<AdminPickupDto?> UpdatePickupAsync(string id, AdminPickupUpdateRequest request)
     {
-        var pickup = await documents.GetAsync<PickupDocument>(ReLoopCollections.Pickups, id);
+        var pickup = await documents.GetAsync<PickupDocument>(FirestoreCollections.Pickups, id);
         if (pickup is null) return null;
         var agentId = string.IsNullOrWhiteSpace(request.AssignedAgent) ? null : request.AssignedAgent.Trim();
         if (agentId is not null)
@@ -100,7 +100,7 @@ public sealed class AdminManagementService(ReLoopStore store, IReLoopDocumentSto
 
     public async Task<AdminRewardDto?> UpdateRewardAsync(string id, RewardCatalogueRequest request)
     {
-        var item = await documents.GetAsync<RewardItemDocument>(ReLoopCollections.RewardItems, id);
+        var item = await documents.GetAsync<RewardItemDocument>(FirestoreCollections.RewardItems, id);
         if (item is null) return null;
         item.ItemName = request.Name.Trim(); item.Description = request.Description.Trim(); item.PointsCost = request.PointsCost; item.IsActive = request.IsActive; item.UpdatedAt = DateTime.UtcNow;
         await store.SaveRewardItemAsync(item);
@@ -119,13 +119,13 @@ public sealed class AdminManagementService(ReLoopStore store, IReLoopDocumentSto
 
     public async Task<AdminRedemptionDto?> UpdateRedemptionAsync(string id, RedemptionUpdateRequest request)
     {
-        var item = await documents.GetAsync<RedemptionLogDocument>(ReLoopCollections.RedemptionLogs, id);
+        var item = await documents.GetAsync<RedemptionLogDocument>(FirestoreCollections.RedemptionLogs, id);
         if (item is null) return null;
         item.Status = request.Status;
         if (request.Status == "Fulfilled") item.RedeemedAt = DateTime.UtcNow;
         await store.SaveRedemptionAsync(item);
         var user = await store.GetUserAsync(item.UserId);
-        var reward = await documents.GetAsync<RewardItemDocument>(ReLoopCollections.RewardItems, item.RewardItemId);
+        var reward = await documents.GetAsync<RewardItemDocument>(FirestoreCollections.RewardItems, item.RewardItemId);
         return new AdminRedemptionDto(item.RedemptionId, user?.FullName ?? "Unknown member", reward?.ItemName ?? "Reward", item.PointsUsed, item.Status, item.CreatedAt.ToString("dd MMM yyyy"));
     }
 
