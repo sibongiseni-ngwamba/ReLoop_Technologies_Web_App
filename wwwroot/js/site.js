@@ -25,6 +25,34 @@
       await profileRef(user).set(data); return data;
     }
     return doc.data();
+const toneClass = (tone) => `reloop-badge reloop-badge--${tone || "neutral"}`;
+
+async function fetchJson(url, options) {
+  let response;
+  try { response = await fetch(url, options); } catch { throw new Error("Network unavailable. Check your connection and try again."); }
+  if (response.status === 401) {
+    window.location.assign(`/Login?returnUrl=${encodeURIComponent(window.location.pathname)}`);
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+  if (response.status === 403) throw new Error("You do not have permission to perform this action.");
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw Object.assign(new Error(payload.title || "Please check the highlighted fields and try again."), { payload });
+  }
+  return payload;
+}
+
+function readForm(form) {
+  const data = new FormData(form);
+  const body = {};
+  for (const [key, value] of data.entries()) body[key] = value;
+  form.querySelectorAll('input[type="checkbox"]').forEach((input) => body[input.name] = input.checked);
+  return body;
+}
+
+function showFormErrors(form, errors = {}) {
+  form.querySelectorAll("[data-error-for]").forEach((item) => {
+    item.textContent = errors[item.dataset.errorFor]?.[0] || "";
   });
   const requireSignedIn = async () => {
     needsDb();
@@ -235,3 +263,172 @@
   }
   loadDashboard(); renderPickups(); loadProfile(); renderAdmin();
 })();
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    const initialLabel = submitButton?.innerHTML;
+    try {
+      if (submitButton) { submitButton.disabled = true; submitButton.classList.add("is-loading"); submitButton.textContent = "Saving…"; }
+      status.textContent = "Saving your details…";
+      status.classList.remove("is-success");
+      status.classList.add("is-loading");
+      await fetchJson(form.dataset.endpoint, {
+        method: form.dataset.method || "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(readForm(form))
+      });
+      status.textContent = form.dataset.success || "Saved successfully.";
+      status.classList.add("is-success");
+      if (form.dataset.redirect) window.setTimeout(() => window.location.assign(form.dataset.redirect), 600);
+    } catch (error) {
+      status.textContent = error.message;
+      showFormErrors(form, error.payload?.errors);
+    } finally {
+      status.classList.remove("is-loading");
+      if (submitButton) { submitButton.disabled = false; submitButton.classList.remove("is-loading"); submitButton.innerHTML = initialLabel; }
+    }
+  });
+});
+
+const menuToggle = document.querySelector(".reloop-menu-toggle");
+const primaryNavigation = document.querySelector("#primary-navigation");
+menuToggle?.addEventListener("click", () => {
+  const isOpen = primaryNavigation.classList.toggle("is-open");
+  menuToggle.setAttribute("aria-expanded", String(isOpen));
+});
+
+document.querySelectorAll("input[type='date'][name='preferredDate']").forEach((input) => {
+  input.min = new Date().toISOString().slice(0, 10);
+});
+
+async function loadProfile() {
+  const root = document.querySelector(".js-profile");
+  if (!root) return;
+
+  try {
+    const profile = await fetchJson("/api/profile");
+    root.querySelectorAll("[data-profile-field]").forEach((field) => {
+      field.value = profile[field.dataset.profileField] || "";
+    });
+    root.querySelector("[data-profile-summary]").innerHTML = `
+    <div class="profile-stat"><span>Role</span><strong>${profile.role}</strong></div>
+    <div class="profile-stat"><span>Reward Points</span><strong>${profile.rewardPoints}</strong></div>
+    <div class="profile-stat"><span>Scans</span><strong>${profile.scanCount}</strong></div>
+    <div class="profile-stat"><span>Pickups</span><strong>${profile.pickupCount}</strong></div>`;
+  } catch {
+    root.querySelector("[data-profile-summary]").textContent = "We could not load your profile right now. Please refresh and try again.";
+  }
+}
+
+function metricCard(metric) {
+  return `<article class="metric-card metric-card--${metric.tone}"><span>${metric.label}</span><strong>${metric.value}</strong><small>${metric.detail}</small></article>`;
+}
+
+function statusTone(status) {
+  return status === "Completed" ? "success" : status === "Cancelled" ? "danger" : status === "Scheduled" ? "info" : "warning";
+}
+
+function pickupMini(pickup) {
+  return `<article class="pickup-row"><strong>${pickup.id}</strong><span>${pickup.wasteType}</span><span>${pickup.date}</span><span class="${toneClass(statusTone(pickup.status))}">${pickup.status}</span></article>`;
+}
+
+async function loadDashboard() {
+  const root = document.querySelector(".js-dashboard");
+  if (!root) return;
+  try {
+    const data = await fetchJson("/api/dashboard");
+    root.querySelector("[data-dashboard-metrics]").innerHTML = data.metrics.map(metricCard).join("");
+    root.querySelector("[data-dashboard-activity]").innerHTML = data.activity.map(item => `<article class="activity-item"><span class="${toneClass(item.tone)}">${item.date}</span><strong>${item.title}</strong><p>${item.detail}</p></article>`).join("");
+    root.querySelector("[data-dashboard-pickups]").innerHTML = data.pickups.map(pickupMini).join("");
+  } catch {
+    root.querySelector("[data-dashboard-metrics]").innerHTML = '<p class="empty-state">Dashboard data is unavailable. Please refresh to try again.</p>';
+  }
+}
+
+document.querySelectorAll(".js-scan-form").forEach((form) => {
+  const input = form.querySelector('input[type="file"]');
+  const label = form.querySelector(".upload-zone__drop strong");
+  const status = form.querySelector(".form-status");
+  const result = document.querySelector("[data-scan-result]");
+
+  input.addEventListener("change", () => label.textContent = input.files[0]?.name || "Drag & drop an image or click to upload");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!input.files.length) {
+      status.textContent = "Choose an image before classifying.";
+      return;
+    }
+
+    const submit = form.querySelector('button[type="submit"]');
+    if (submit) { submit.disabled = true; submit.classList.add("is-loading"); }
+    status.textContent = "Classifying your upload…";
+    status.classList.add("is-loading");
+    try {
+      const payload = await fetchJson("/api/scan/classify", { method: "POST", body: new FormData(form) });
+      status.textContent = "Scan saved successfully.";
+      status.classList.remove("is-loading");
+      status.classList.add("is-success");
+      result.hidden = false;
+      result.innerHTML = `<div class="scan-result__media">${input.files[0].name}</div><div class="scan-result__details"><h2>${payload.item}</h2><div class="badge-row"><span class="reloop-badge reloop-badge--success">${payload.disposition}</span><span class="reloop-badge reloop-badge--warning">+${payload.points} pts</span><span class="reloop-badge reloop-badge--info">${payload.confidence}% confidence</span></div><dl><dt>Category</dt><dd>${payload.category}</dd><dt>Estimated Weight</dt><dd>${payload.estimatedWeight}</dd><dt>Date Scanned</dt><dd>${new Date(payload.dateScanned).toLocaleString()}</dd></dl><div class="button-pair"><a class="reloop-btn reloop-btn--primary" href="/Dashboard">View dashboard</a><button class="reloop-btn reloop-btn--secondary" type="button" data-scan-again>Scan another item</button></div></div>`;
+      result.querySelector("[data-scan-again]").addEventListener("click", () => window.location.reload());
+    } catch (error) {
+      status.textContent = error.message || "We could not classify this image. Please try again.";
+      status.classList.remove("is-loading");
+    } finally {
+      if (submit) { submit.disabled = false; submit.classList.remove("is-loading"); }
+    }
+  });
+});
+
+async function loadPickups(status = "All") {
+  const root = document.querySelector(".js-pickups");
+  if (!root) return;
+  try {
+    const rows = await fetchJson(`/api/pickups?status=${encodeURIComponent(status)}`);
+    root.querySelector("[data-pickups-table]").innerHTML = rows.map(row => `<tr><td><strong>${row.id}</strong></td><td>${row.date}</td><td>${row.address}</td><td><strong>${row.wasteType}</strong></td><td>${row.weight}</td><td><span class="${toneClass(statusTone(row.status))}">${row.status}</span></td></tr>`).join("");
+    const empty = root.querySelector("[data-pickups-empty]");
+    empty.hidden = rows.length > 0;
+    if (!rows.length) empty.textContent = "No pickups match this filter yet.";
+  } catch {
+    const empty = root.querySelector("[data-pickups-empty]");
+    empty.textContent = "We could not load pickups. Please refresh and try again.";
+    empty.hidden = false;
+  }
+}
+
+document.querySelectorAll(".js-pickups .tab").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".js-pickups .tab").forEach((tab) => tab.classList.remove("is-active"));
+    button.classList.add("is-active");
+    loadPickups(button.dataset.status);
+  });
+});
+
+loadDashboard();
+loadPickups();
+loadProfile();
+
+const adminRoot = document.querySelector(".js-admin-management");
+if (adminRoot) {
+  const adminState = { users: 1, pickups: 1, activity: 1, redemptions: 1, userSearch: "", pickupSearch: "", pickupStatus: "All" };
+  const dialog = adminRoot.parentElement.querySelector("[data-admin-dialog]");
+  const fields = dialog.querySelector("[data-admin-editor-fields]");
+  const editor = dialog.querySelector("[data-admin-editor]");
+  const editorStatus = dialog.querySelector("[data-admin-editor-status]");
+  const status = adminRoot.querySelector("[data-admin-status]");
+  const escape = value => String(value ?? "").replace(/[&<>'"]/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[char]);
+  const setStatus = message => { status.textContent = message; status.classList.toggle("is-success", Boolean(message)); };
+  const pageButtons = (target, data, callback) => { target.innerHTML = `<span>${data.totalCount} total</span><button ${data.page === 1 ? "disabled" : ""}>Previous</button><span>Page ${data.page}</span><button ${data.page * data.pageSize >= data.totalCount ? "disabled" : ""}>Next</button>`; const buttons = target.querySelectorAll("button"); buttons[0].onclick = () => callback(data.page - 1); buttons[1].onclick = () => callback(data.page + 1); };
+  async function loadOverview() { const data = await fetchJson("/api/admin/overview"); adminRoot.querySelector("[data-admin-metrics]").innerHTML = data.metrics.map(metricCard).join(""); }
+  async function loadUsers(page = adminState.users) { adminState.users = page; const data = await fetchJson(`/api/admin/users?page=${page}&search=${encodeURIComponent(adminState.userSearch)}`); adminRoot.querySelector("[data-admin-users]").innerHTML = data.items.length ? data.items.map(user => `<tr><td><strong>${escape(user.fullName)}</strong><br><small>${escape(user.email)} · Joined ${escape(user.joined)}</small><br><small>${escape(user.address)} · ${escape(user.preferredCategory)}</small></td><td>${escape(user.role)}</td><td>${user.rewardPoints}</td><td>${user.pickups}</td><td><span class="${toneClass(user.isActive ? "success" : "danger")}">${user.isActive ? "Active" : "Inactive"}</span></td><td><button class="admin-action" data-edit-user="${encodeURIComponent(JSON.stringify(user))}">Edit</button></td></tr>`).join("") : '<tr><td colspan="6" class="empty-state">No members match that search.</td></tr>'; pageButtons(adminRoot.querySelector("[data-admin-users-pagination]"), data, loadUsers); adminRoot.querySelectorAll("[data-edit-user]").forEach(button => button.onclick = () => editUser(JSON.parse(decodeURIComponent(button.dataset.editUser)))); }
+  async function loadPickups(page = adminState.pickups) { adminState.pickups = page; const data = await fetchJson(`/api/admin/pickups?page=${page}&status=${encodeURIComponent(adminState.pickupStatus)}&search=${encodeURIComponent(adminState.pickupSearch)}`); adminRoot.querySelector("[data-admin-pickups]").innerHTML = data.items.length ? data.items.map(item => `<tr><td><strong>${escape(item.reference)}</strong></td><td>${escape(item.member)}</td><td>${escape(item.date)}</td><td>${escape(item.material)}</td><td>${escape(item.assignedAgent || "Unassigned")}</td><td><span class="${toneClass(statusTone(item.status))}">${escape(item.status)}</span></td><td><button class="admin-action" data-edit-pickup="${encodeURIComponent(JSON.stringify(item))}">Manage</button></td></tr>`).join("") : '<tr><td colspan="7" class="empty-state">No pickups match these filters.</td></tr>'; pageButtons(adminRoot.querySelector("[data-admin-pickups-pagination]"), data, loadPickups); adminRoot.querySelectorAll("[data-edit-pickup]").forEach(button => button.onclick = () => editPickup(JSON.parse(decodeURIComponent(button.dataset.editPickup)))); }
+  async function loadActivity(page = adminState.activity) { adminState.activity = page; const data = await fetchJson(`/api/admin/activity?page=${page}`); adminRoot.querySelector("[data-admin-activity]").innerHTML = data.items.length ? data.items.map(item => `<tr><td>${escape(item.member)}</td><td><strong>${escape(item.title)}</strong></td><td>${escape(item.detail)}</td><td>${escape(item.date)}</td></tr>`).join("") : '<tr><td colspan="4" class="empty-state">No recycling activity recorded.</td></tr>'; pageButtons(adminRoot.querySelector("[data-admin-activity-pagination]"), data, loadActivity); }
+  async function loadRedemptions(page = adminState.redemptions) { adminState.redemptions = page; const data = await fetchJson(`/api/admin/redemptions?page=${page}`); adminRoot.querySelector("[data-admin-redemptions]").innerHTML = data.items.length ? data.items.map(item => `<tr><td>${escape(item.member)}</td><td>${escape(item.reward)}</td><td>${item.pointsSpent}</td><td>${escape(item.date)}</td><td>${escape(item.status)}</td><td><button class="admin-action" data-edit-redemption="${encodeURIComponent(JSON.stringify(item))}">Update</button></td></tr>`).join("") : '<tr><td colspan="6" class="empty-state">No redemption requests yet.</td></tr>'; pageButtons(adminRoot.querySelector("[data-admin-redemptions-pagination]"), data, loadRedemptions); adminRoot.querySelectorAll("[data-edit-redemption]").forEach(button => button.onclick = () => editRedemption(JSON.parse(decodeURIComponent(button.dataset.editRedemption)))); }
+  async function loadRewards() { const rewards = await fetchJson("/api/admin/rewards"); adminRoot.querySelector("[data-admin-rewards]").innerHTML = rewards.length ? rewards.map(item => `<tr><td><strong>${escape(item.name)}</strong><br><small>${escape(item.description)}</small></td><td>${item.pointsCost} pts</td><td>${item.isActive ? "Active" : "Hidden"}</td><td><button class="admin-action" data-edit-reward="${encodeURIComponent(JSON.stringify(item))}">Edit</button></td></tr>`).join("") : '<tr><td colspan="4" class="empty-state">No rewards in the catalogue.</td></tr>'; adminRoot.querySelectorAll("[data-edit-reward]").forEach(button => button.onclick = () => editReward(JSON.parse(decodeURIComponent(button.dataset.editReward)))); }
+  function openEditor(html, submit) { fields.innerHTML = html; editor.onsubmit = async event => { event.preventDefault(); const saveButton = editor.querySelector('button[type="submit"]'); if (saveButton.disabled) return; saveButton.disabled = true; editorStatus.textContent = "Saving…"; try { await submit(new FormData(editor)); dialog.close(); setStatus("Changes saved."); await refresh(); } catch (error) { editorStatus.textContent = error.message; } finally { saveButton.disabled = false; } }; editorStatus.textContent = ""; dialog.showModal(); }
+  function editUser(user) { openEditor(`<h2>Edit member</h2><p>${escape(user.email)} · Joined ${escape(user.joined)}</p><label>Name<input name="fullName" value="${escape(user.fullName)}" required maxlength="120"></label><label>Address<input name="address" value="${escape(user.address)}" required maxlength="240"></label><label>Preferred material<input name="preferredCategory" value="${escape(user.preferredCategory)}" required maxlength="80"></label><label>Role<select name="role"><option ${user.role === "Member" ? "selected" : ""}>Member</option><option ${user.role === "Admin" ? "selected" : ""}>Admin</option></select></label><label><input name="isActive" type="checkbox" ${user.isActive ? "checked" : ""}> Account is active</label>`, data => fetchJson(`/api/admin/users/${user.id}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ fullName:data.get("fullName"), address:data.get("address"), preferredCategory:data.get("preferredCategory"), role:data.get("role"), isActive:data.get("isActive") === "on" }) })); }
+  function editPickup(item) { openEditor(`<h2>Manage ${escape(item.reference)}</h2><label>Recycling agent<input name="assignedAgent" value="${escape(item.assignedAgent || "")}" placeholder="Agent name"></label><label>Status<select name="status">${["Scheduled","Assigned","Completed","Cancelled"].map(value => `<option ${item.status === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>`, data => fetchJson(`/api/admin/pickups/${item.id}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ status:data.get("status"), assignedAgent:data.get("assignedAgent") }) })); }
+  function editReward(item) { openEditor(`<h2>${item ? "Edit reward" : "New reward"}</h2><label>Name<input name="name" value="${escape(item?.name || "")}" required></label><label>Description<textarea name="description" required>${escape(item?.description || "")}</textarea></label><label>Points cost<input name="pointsCost" type="number" min="1" value="${item?.pointsCost || 100}" required></label><label><input name="isActive" type="checkbox" ${!item || item.isActive ? "checked" : ""}> Available to members</label>`, data => fetchJson(item ? `/api/admin/rewards/${item.id}` : "/api/admin/rewards", { method:item ? "PUT" : "POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ name:data.get("name"), description:data.get("description"), pointsCost:Number(data.get("pointsCost")), isActive:data.get("isActive") === "on" }) })); }
+  function editRedemption(item) { openEditor(`<h2>Update redemption</h2><p>${escape(item.member)} — ${escape(item.reward)}</p><label>Status<select name="status">${["Pending","Approved","Fulfilled","Declined"].map(value => `<option ${item.status === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>`, data => fetchJson(`/api/admin/redemptions/${item.id}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ status:data.get("status") }) })); }
+  async function refresh() { try { await Promise.all([loadOverview(), loadUsers(), loadPickups(), loadActivity(), loadRewards(), loadRedemptions()]); } catch (error) { setStatus(error.message || "Could not load administration data."); } }
+  let searchTimer; adminRoot.querySelector("[data-admin-user-search]").oninput = event => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { adminState.userSearch = event.target.value; loadUsers(1); }, 250); }; adminRoot.querySelector("[data-admin-pickup-search]").oninput = event => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { adminState.pickupSearch = event.target.value; loadPickups(1); }, 250); }; adminRoot.querySelector("[data-admin-pickup-status]").onchange = event => { adminState.pickupStatus = event.target.value; loadPickups(1); }; adminRoot.querySelector("[data-admin-new-reward]").onclick = () => editReward(); dialog.querySelector("[data-admin-cancel]").onclick = () => dialog.close(); refresh();
+}

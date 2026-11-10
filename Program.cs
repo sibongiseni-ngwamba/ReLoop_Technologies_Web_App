@@ -1,11 +1,12 @@
-using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.EntityFrameworkCore;
+using Google.Api.Gax;
+using Google.Cloud.Firestore;
 using ReLoop_Technologies_Web_App.Data;
 using ReLoop_Technologies_Web_App.Models;
 using ReLoop_Technologies_Web_App.Services;
+using ReLoop_Technologies_Web_App.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,24 +15,70 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 // Add services to the container.
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.AuthorizePage("/Dashboard");
+    options.Conventions.AuthorizePage("/ScanWaste");
+    options.Conventions.AuthorizePage("/SchedulePickup");
+    options.Conventions.AuthorizePage("/MyPickups");
+    options.Conventions.AuthorizePage("/Profile");
+    options.Conventions.AuthorizePage("/Logout");
+    options.Conventions.AuthorizeFolder("/Admin", "AdminOnly");
+});
+builder.Services.AddAuthorization(options => options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin")));
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Login";
         options.LogoutPath = "/Logout";
         options.AccessDeniedPath = "/Login";
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api")) { context.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; }
+            context.Response.Redirect(context.RedirectUri); return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api")) { context.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; }
+            context.Response.Redirect(context.RedirectUri); return Task.CompletedTask;
+        };
+        options.Events.OnValidatePrincipal = async context =>
+        {
+            var store = context.HttpContext.RequestServices.GetRequiredService<ReLoopStore>();
+            var uid = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+            var role = context.Principal?.FindFirstValue(ClaimTypes.Role);
+            if (!await store.IsSessionValidAsync(uid, role))
+            {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return;
+            }
+        };
     });
-builder.Services.AddDbContext<ReLoopDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("ReLoopDatabase")));
+var firebaseProjectId = builder.Configuration["Firebase:ProjectId"];
+var firestoreDatabaseId = builder.Configuration["Firebase:DatabaseId"] ?? "(default)";
+if (string.IsNullOrWhiteSpace(firebaseProjectId))
+{
+    throw new InvalidOperationException("Configure Firebase:ProjectId for the shared ReLoop Firebase project.");
+}
+builder.Services.AddSingleton(_ => new FirestoreDbBuilder { ProjectId = firebaseProjectId, DatabaseId = firestoreDatabaseId, EmulatorDetection = EmulatorDetection.EmulatorOrProduction }.Build());
+builder.Services.AddSingleton<IReLoopDocumentStore, FirestoreDocumentStore>();
+builder.Services.AddSingleton<IFirebaseIdentityService>(_ => new FirebaseIdentityService(firebaseProjectId));
 builder.Services.AddScoped<ReLoopStore>();
+builder.Services.AddScoped<AdminManagementService>();
+builder.Services.AddScoped<MemberServices>();
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler();
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
@@ -45,90 +92,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
-
-app.MapPost("/api/auth/logout", async (HttpContext httpContext) =>
-{
-    await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-    return Results.Ok(new { message = "Signed out" });
-}).WithTags("Authentication");
-
-app.MapGet("/api/dashboard", async (ReLoopStore store) => Results.Ok(await store.GetDashboardAsync())).WithTags("Dashboard");
-app.MapGet("/api/pickups", async (ReLoopStore store, string? status) => Results.Ok(await store.GetPickupsAsync(status))).WithTags("Pickups");
-app.MapPost("/api/pickups", async (CreatePickupRequest request, ReLoopStore store) =>
-{
-    var errors = Validate(request);
-    if (errors.Count > 0)
-    {
-        return Results.ValidationProblem(errors);
-    }
-
-    return Results.Created("/api/pickups", await store.CreatePickupAsync(request));
-}).WithTags("Pickups");
-
-app.MapPost("/api/scan/classify", async (HttpRequest request, ReLoopStore store) =>
-{
-    var fileName = request.Form.Files.FirstOrDefault()?.FileName ?? "plastic-bottle.jpg";
-    return Results.Ok(await store.ClassifyScanAsync(fileName));
-}).DisableAntiforgery().WithTags("Scan");
-
-app.MapGet("/api/admin/stats", async (ReLoopStore store) => Results.Ok(await store.GetAdminStatsAsync())).WithTags("Admin");
-app.MapGet("/api/rewards", () => Results.Ok(new { points = 1200, tier = "Circular Citizen", nextRewardAt = 1500 })).WithTags("Rewards");
-app.MapGet("/api/profile", async (HttpContext httpContext, ReLoopStore store) =>
-    Results.Ok(await store.GetProfileAsync(httpContext.User.FindFirstValue(ClaimTypes.Email)))).WithTags("Profile");
-app.MapPut("/api/profile", async (ProfileUpdateRequest request, HttpContext httpContext, ReLoopStore store) =>
-{
-    var errors = Validate(request);
-    if (errors.Count > 0)
-    {
-        return Results.ValidationProblem(errors);
-    }
-
-    var profile = await store.UpdateProfileAsync(httpContext.User.FindFirstValue(ClaimTypes.Email), request);
-    await SignInUserAsync(httpContext, profile.FullName, profile.Email, profile.Role, true);
-    return Results.Ok(profile);
-}).WithTags("Profile");
-app.MapPost("/api/contact", async (ContactRequest request, ReLoopStore store) =>
-{
-    var errors = Validate(request);
-    if (errors.Count > 0)
-    {
-        return Results.ValidationProblem(errors);
-    }
-
-    var message = await store.CreateContactMessageAsync(request);
-    return Results.Created("/Contact", new { message.Id, message.Status });
-}).WithTags("Contact");
+app.MapReLoopApi();
 
 app.Run();
-
-static Dictionary<string, string[]> Validate<T>(T model)
-{
-    var context = new ValidationContext(model!);
-    var results = new List<ValidationResult>();
-    Validator.TryValidateObject(model!, context, results, true);
-
-    return results
-        .GroupBy(result => result.MemberNames.FirstOrDefault() ?? string.Empty)
-        .ToDictionary(group => group.Key, group => group.Select(result => result.ErrorMessage ?? "Invalid value").ToArray());
-}
-
-static async Task SignInUserAsync(HttpContext httpContext, string fullName, string email, string role, bool persistent)
-{
-    var claims = new List<Claim>
-    {
-        new(ClaimTypes.Name, fullName),
-        new(ClaimTypes.Email, email),
-        new(ClaimTypes.Role, role)
-    };
-    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-    await httpContext.SignInAsync(
-        CookieAuthenticationDefaults.AuthenticationScheme,
-        new ClaimsPrincipal(identity),
-        new AuthenticationProperties
-        {
-            IsPersistent = persistent,
-            ExpiresUtc = persistent ? DateTimeOffset.UtcNow.AddDays(14) : null
-        });
-}
 
 public partial class Program;

@@ -10,6 +10,7 @@ public sealed class UserAccount
     public string Address { get; set; } = "452 Eco Circular Ave, Suite 3B";
     public string PreferredCategory { get; set; } = "Recyclables";
     public int RewardPoints { get; set; }
+    public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public List<Pickup> Pickups { get; set; } = [];

@@ -11,6 +11,7 @@ public sealed class Pickup
     public decimal? EstimatedWeightKg { get; set; }
     public string Status { get; set; } = "Scheduled";
     public string? Notes { get; set; }
+    public string? AssignedAgent { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public UserAccount? UserAccount { get; set; }

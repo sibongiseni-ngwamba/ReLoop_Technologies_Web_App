@@ -1,0 +1,22 @@
+@page
+@{
+    ViewData["Title"] = "Recycling guide";
+}
+
+<section class="app-page public-page">
+    <div class="page-heading page-heading--centered">
+        <p class="landing-eyebrow">Recycling information</p>
+        <h1>Prepare better. Recycle more.</h1>
+        <p>Small habits make material recovery safer and more effective. Use this guide before your next collection.</p>
+    </div>
+    <div class="guide-grid">
+        <article class="panel guide-card"><span aria-hidden="true">♳</span><h2>Plastic</h2><p>Empty and rinse bottles, tubs, and containers. Keep lids on where your local collector accepts them.</p></article>
+        <article class="panel guide-card"><span aria-hidden="true">▤</span><h2>Paper &amp; cardboard</h2><p>Keep paper dry and flatten boxes. Avoid food-soiled paper and laminated packaging.</p></article>
+        <article class="panel guide-card"><span aria-hidden="true">◇</span><h2>Glass &amp; metal</h2><p>Rinse jars and cans. Separate broken glass in a sealed, clearly labelled container for safe handling.</p></article>
+        <article class="panel guide-card"><span aria-hidden="true">⌁</span><h2>E-waste</h2><p>Keep batteries, cables, and devices separate from household recycling. Book a dedicated e-waste pickup.</p></article>
+    </div>
+    <section class="panel checklist-panel">
+        <div><h2>Before collection</h2><p>Clean, sort, and place materials in a safe, accessible location. Our collector can verify your materials faster and issue points more accurately.</p></div>
+        <a class="reloop-btn reloop-btn--primary" asp-page="/SchedulePickup">Schedule a pickup</a>
+    </section>
+</section>

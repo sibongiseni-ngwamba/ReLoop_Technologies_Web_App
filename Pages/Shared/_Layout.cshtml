@@ -1,3 +1,9 @@
+@{
+    var signedInName = User.Identity?.Name?.Trim();
+    var avatarInitials = string.IsNullOrWhiteSpace(signedInName)
+        ? "U"
+        : string.Concat(signedInName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,15 +42,22 @@
                 </span>
             </a>
 
+            <button class="reloop-menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation">
+                <span class="visually-hidden">Toggle navigation</span><span aria-hidden="true">☰</span>
+            </button>
             <partial name="_ShellNav" />
 
             <div class="reloop-topbar__actions">
-                <a class="reloop-icon-button" data-auth-nav data-roles="resident,agent,admin" asp-page="/Dashboard" aria-label="Notifications" hidden>
-                    <span aria-hidden="true">🔔</span>
-                </a>
-                <a class="reloop-avatar" data-auth-nav data-roles="resident,agent,admin" asp-page="/Profile" aria-label="User profile" hidden>A</a>
-                <a class="reloop-btn reloop-btn--secondary reloop-topbar__login" data-guest-nav asp-page="/Login">Login</a>
-                <a class="reloop-btn reloop-btn--secondary reloop-logout-link" data-auth-nav data-roles="resident,agent,admin" asp-page="/Logout" hidden>Logout</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="reloop-icon-button" asp-page="/Dashboard" aria-label="Open dashboard"><span aria-hidden="true">⌂</span></a>
+                    <a class="reloop-avatar" asp-page="/Profile" aria-label="Profile for @signedInName" title="@signedInName">@avatarInitials</a>
+                }
+                else
+                {
+                    <a class="reloop-btn reloop-btn--secondary reloop-topbar__login" asp-page="/Login">Login</a>
+                    <a class="reloop-btn reloop-btn--primary reloop-topbar__login" asp-page="/SignUp">Join ReLoop</a>
+                }
             </div>
         </div>
     </header>
@@ -82,24 +95,33 @@
 
             <div class="reloop-footer__links">
                 <div>
-                    <h2>Platform</h2>
+                    <h2>Explore</h2>
                     <a asp-page="/Index">Home</a>
-                    <a data-auth-nav data-roles="resident,agent,admin" asp-page="/Dashboard" hidden>Dashboard</a>
-                    <a data-auth-nav data-roles="resident,admin" asp-page="/ScanWaste" hidden>Scan Waste</a>
-                    <a data-auth-nav data-roles="resident,admin" asp-page="/SchedulePickup" hidden>Schedule Pickup</a>
+                    <a asp-page="/About">About</a>
+                    <a asp-page="/Services">Services</a>
+                    <a asp-page="/Recycling">Recycling guide</a>
                 </div>
                 <div>
                     <h2>Company</h2>
                     <a asp-page="/About">About</a>
+                    <a asp-page="/Services">Services</a>
+                    <a asp-page="/Recycling">Recycling guide</a>
                     <a asp-page="/Contact">Contact</a>
                     <a asp-page="/Privacy">Privacy</a>
                 </div>
                 <div>
                     <h2>Account</h2>
-                    <a data-auth-nav data-roles="resident,agent,admin" asp-page="/Profile" hidden>Profile</a>
-                    <a data-auth-nav data-roles="resident,agent" asp-page="/MyPickups" hidden>My Pickups</a>
-                    <a data-auth-nav data-roles="resident,agent,admin" asp-page="/Logout" hidden>Logout</a>
-                    <a data-admin-nav asp-page="/Admin/Index" hidden>Admin console</a>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a asp-page="/Dashboard">My dashboard</a>
+                        <a asp-page="/Profile">Profile</a>
+                        <a asp-page="/Logout">Logout</a>
+                    }
+                    else
+                    {
+                        <a asp-page="/Login">Login</a>
+                        <a asp-page="/SignUp">Create account</a>
+                    }
                 </div>
             </div>
         </div>
@@ -120,6 +142,7 @@
     <script src="https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore-compat.js"></script>
     <script src="~/js/reloop-domain.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script type="module" src="~/js/firebase-auth.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

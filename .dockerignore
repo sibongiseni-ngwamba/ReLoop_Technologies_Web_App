@@ -1,0 +1,12 @@
+.git
+.github
+.vs
+**/bin
+**/obj
+artifacts
+tests
+tools
+*.user
+*.slnx
+README.md
+QA-CHECKLIST.md

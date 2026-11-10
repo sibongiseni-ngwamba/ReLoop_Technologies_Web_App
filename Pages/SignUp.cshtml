@@ -4,16 +4,35 @@
 }
 
 <section class="auth-page">
-    <form class="auth-card js-api-form" data-endpoint="/api/auth/signup" novalidate>
+    <form class="auth-card js-firebase-auth" data-mode="signup" data-redirect="/Dashboard" novalidate>
         <div class="auth-card__heading">
             <h1>Create your ReLoop account</h1>
             <p>Use Google to create your account and start recycling with ReLoop.</p>
         </div>
-        <label class="app-field"><span>Full name</span><input name="fullName" autocomplete="name" required /><small data-error-for="fullName"></small></label>
-        <label class="app-field"><span>Email</span><input name="email" type="email" autocomplete="email" required /><small data-error-for="email"></small></label>
+
+        <label class="app-field">
+            <span>Full name</span>
+            <input name="fullName" placeholder="Alex Rivera" required />
+            <small data-error-for="fullName"></small>
+        </label>
+
+        <label class="app-field">
+            <span>Email</span>
+            <input name="email" type="email" autocomplete="email" placeholder="alex@example.com" required />
+            <small data-error-for="email"></small>
+        </label>
+
         <div class="form-two">
-            <label class="app-field"><span>Password</span><input name="password" type="password" autocomplete="new-password" minlength="6" required /><small data-error-for="password"></small></label>
-            <label class="app-field"><span>Confirm password</span><input name="confirmPassword" type="password" autocomplete="new-password" minlength="6" required /><small data-error-for="confirmPassword"></small></label>
+            <label class="app-field">
+                <span>Password</span>
+                <input name="password" type="password" autocomplete="new-password" minlength="6" required />
+                <small data-error-for="password"></small>
+            </label>
+            <label class="app-field">
+                <span>Confirm password</span>
+                <input name="confirmPassword" type="password" autocomplete="new-password" minlength="6" required />
+                <small data-error-for="confirmPassword"></small>
+            </label>
         </div>
         <button class="reloop-btn reloop-btn--primary reloop-btn--full" type="submit">Create account</button>
         <p class="form-status" aria-live="polite"></p>

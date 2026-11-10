@@ -3,59 +3,33 @@
     ViewData["Title"] = "Admin Console";
 }
 
-<section class="app-page admin-page js-admin">
+<section class="app-page admin-page js-admin-management">
     <div class="admin-layout">
         <aside class="admin-sidebar">
             <strong>Admin Panel</strong>
-            <a class="is-active" href="#overview">Overview</a>
-            <a href="#users">Users Management</a>
-            <a href="#pickups">Pickup Management</a>
-            <a href="#rewards">Rewards Catalogue</a>
-            <a href="#claims">Reward Claims</a>
-            <a href="#scans">Waste Scan Log</a>
+            <a class="is-active" asp-page="/Admin/Index">Overview</a>
+            <a asp-page="/Profile">User profile</a>
+            <a asp-page="/MyPickups">Active pickups</a>
+            <a asp-page="/Recycling">Environmental guide</a>
+            <a asp-page="/Contact">Partner support</a>
         </aside>
 
-        <div>
-            <div class="page-heading">
-                <h1>Admin Command Console</h1>
-                <p>Monitor municipal collection performance, eco verification logs, and reward activity.</p>
+        <div class="admin-workspace">
+            <div class="page-heading" id="overview">
+                <p class="landing-eyebrow">Authorised workspace</p>
+                <h1>Operations dashboard</h1>
+                <p>Manage members, collection operations, recycling activity, and circular rewards from current system data.</p>
             </div>
 
-            <p class="form-status" data-admin-status aria-live="polite">Checking your administrator access…</p>
-            <div class="admin-workspace" data-admin-workspace hidden>
-            <div class="metric-grid" data-admin-metrics></div>
+            <div class="metric-grid" data-admin-metrics aria-live="polite"><p class="empty-state">Loading admin statistics…</p></div>
 
-            <div class="content-grid">
-                <section class="panel">
-                    <h2>Waste Distribution by Type</h2>
-                    <div class="donut" aria-label="Waste distribution chart"><span>1.87 Tons</span></div>
-                    <div class="legend" data-admin-legend></div>
-                </section>
-                <section class="panel table-panel">
-                    <h2>Recent pickups pending verification</h2>
-                    <table class="app-table">
-                        <thead><tr><th>User</th><th>Date Logged</th><th>Type</th><th>Est. Weight</th><th>Status</th></tr></thead>
-                        <tbody data-admin-table></tbody>
-                    </table>
-                </section>
-            </div>
-
-            <section class="panel admin-management" id="users">
-                <div class="panel-heading"><h2>User Management</h2><button class="reloop-btn reloop-btn--secondary" type="button" data-admin-refresh="users">Refresh</button></div>
-                <div class="table-panel"><table class="app-table"><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Active</th><th>Actions</th></tr></thead><tbody data-admin-users></tbody></table></div>
-            </section>
-            <section class="panel admin-management" id="pickups">
-                <div class="panel-heading"><h2>Pickup Management</h2><button class="reloop-btn reloop-btn--secondary" type="button" data-admin-refresh="pickups">Refresh</button></div>
-                <div class="table-panel"><table class="app-table"><thead><tr><th>Reference</th><th>User</th><th>Schedule</th><th>Waste</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-pickups></tbody></table></div>
-            </section>
-            <section class="panel admin-management" id="rewards">
-                <h2>Rewards Catalogue</h2>
-                <form data-admin-create="reward" class="admin-create-form"><label class="app-field"><span>Reward name</span><input name="itemName" required maxlength="100"></label><label class="app-field"><span>Points cost</span><input name="pointsCost" type="number" min="1" required></label><label class="app-field"><span>Stock</span><input name="stockQuantity" type="number" min="0"></label><label class="app-field"><span>Description</span><input name="description" maxlength="300"></label><button class="reloop-btn reloop-btn--primary" type="submit">Create reward</button></form>
-                <div class="table-panel"><table class="app-table"><thead><tr><th>Reward</th><th>Points</th><th>Stock</th><th>Active</th><th>Actions</th></tr></thead><tbody data-admin-rewards></tbody></table></div>
-            </section>
-            <section class="panel admin-management" id="claims"><div class="panel-heading"><h2>Reward Claims</h2><button class="reloop-btn reloop-btn--secondary" type="button" data-admin-refresh="redemptionLogs">Refresh</button></div><form data-admin-create="claim" class="admin-create-form"><label class="app-field"><span>User UID</span><input name="userId" required></label><label class="app-field"><span>Reward item ID</span><input name="rewardItemId" required></label><label class="app-field"><span>Points used</span><input name="pointsUsed" type="number" min="0" required></label><label class="app-field"><span>Status</span><select name="status"><option>Approved</option><option>Redeemed</option><option>Fulfilled</option></select></label><button class="reloop-btn reloop-btn--primary" type="submit">Create claim</button></form><div class="table-panel"><table class="app-table"><thead><tr><th>Claim</th><th>User</th><th>Reward</th><th>Points</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-claims></tbody></table></div></section>
-            <section class="panel admin-management" id="scans"><h2>Waste Scan Log</h2><div class="table-panel"><table class="app-table"><thead><tr><th>Record</th><th>User</th><th>Category</th><th>Weight</th><th>Date</th></tr></thead><tbody data-admin-scans></tbody></table></div></section>
-            </div>
+            <section class="panel admin-section" id="users"><div class="admin-section__header"><div><h2>Member accounts</h2><p>View details, change a role, or deactivate access.</p></div><label class="admin-search">Search <input data-admin-user-search type="search" placeholder="Name or email" /></label></div><div class="table-panel"><table class="app-table"><thead><tr><th>Member</th><th>Role</th><th>Points</th><th>Pickups</th><th>Access</th><th>Action</th></tr></thead><tbody data-admin-users><tr><td colspan="6">Loading…</td></tr></tbody></table></div><div class="admin-pagination" data-admin-users-pagination></div></section>
+            <section class="panel admin-section" id="pickups"><div class="admin-section__header"><div><h2>Pickup management</h2><p>Assign a recycling agent and update collection status.</p></div><div class="admin-filter"><select data-admin-pickup-status><option>All</option><option>Scheduled</option><option>Assigned</option><option>Completed</option><option>Cancelled</option></select><input data-admin-pickup-search type="search" placeholder="Reference or member" /></div></div><div class="table-panel"><table class="app-table"><thead><tr><th>Reference</th><th>Member</th><th>Collection</th><th>Material</th><th>Agent</th><th>Status</th><th>Action</th></tr></thead><tbody data-admin-pickups><tr><td colspan="7">Loading…</td></tr></tbody></table></div><div class="admin-pagination" data-admin-pickups-pagination></div></section>
+            <section class="panel admin-section" id="activity"><div class="admin-section__header"><div><h2>Recycling activity</h2><p>Latest scans, collection events, and reward activity.</p></div></div><div class="table-panel"><table class="app-table"><thead><tr><th>Member</th><th>Activity</th><th>Details</th><th>Date</th></tr></thead><tbody data-admin-activity><tr><td colspan="4">Loading…</td></tr></tbody></table></div><div class="admin-pagination" data-admin-activity-pagination></div></section>
+            <section class="panel admin-section" id="rewards"><div class="admin-section__header"><div><h2>Reward catalogue &amp; redemptions</h2><p>Create catalogue offers and oversee fulfilment.</p></div><button class="reloop-btn reloop-btn--primary" type="button" data-admin-new-reward>New reward</button></div><div class="table-panel"><table class="app-table"><thead><tr><th>Reward</th><th>Cost</th><th>Availability</th><th>Action</th></tr></thead><tbody data-admin-rewards><tr><td colspan="4">Loading…</td></tr></tbody></table></div><h3 class="admin-subheading">Redemption oversight</h3><div class="table-panel"><table class="app-table"><thead><tr><th>Member</th><th>Reward</th><th>Points</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead><tbody data-admin-redemptions><tr><td colspan="6">Loading…</td></tr></tbody></table></div><div class="admin-pagination" data-admin-redemptions-pagination></div></section>
+            <p class="form-status" data-admin-status aria-live="polite"></p>
         </div>
     </div>
 </section>
+
+<dialog class="admin-dialog" data-admin-dialog><form method="dialog" data-admin-editor><div data-admin-editor-fields></div><div class="button-pair"><button class="reloop-btn reloop-btn--primary" type="submit">Save changes</button><button class="reloop-btn reloop-btn--secondary" type="button" data-admin-cancel>Cancel</button></div><p class="form-status" data-admin-editor-status aria-live="polite"></p></form></dialog>

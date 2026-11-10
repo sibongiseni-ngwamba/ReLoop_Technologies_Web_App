@@ -8,14 +8,12 @@ Use this checklist before submitting or demoing the project.
 dotnet restore
 dotnet build
 dotnet test
-dotnet tool restore
-dotnet tool run dotnet-ef migrations list
 ```
 
 ## Manual UI Checks
 
 - Home page loads on desktop and mobile widths.
-- Login shows validation for invalid email and short or empty password.
+- Login shows Firebase feedback for invalid credentials and network failures.
 - Sign up rejects mismatched passwords and redirects to dashboard after success.
 - Dashboard metrics, activity, and upcoming pickups populate from `/api/dashboard`.
 - Scan Waste requires an image before classification and shows a result card after upload.
@@ -33,12 +31,13 @@ dotnet tool run dotnet-ef migrations list
 - `POST /api/scan/classify` returns item, category, confidence, points, and weight.
 - `GET /api/admin/stats` returns KPI metrics and waste distribution.
 
-## SQL Checks
+## Firebase Checks
 
-- Confirm `ConnectionStrings:ReLoopDatabase` points to the intended local SQL Server or Azure SQL database.
-- Run `dotnet tool run dotnet-ef database update`.
-- Confirm tables exist for users, pickups, scan records, activity logs, and reward ledger entries.
-- Confirm seed data appears after migration.
+- Confirm the Firebase web-app config is provided through local secrets/environment variables.
+- Confirm the server is authenticated through Application Default Credentials and has least-privilege Firestore access.
+- Confirm the `(default)` Firestore database exists in project `relooptechnologies-2eda2`.
+- Deploy `firestore.rules` and `firestore.indexes.json` with the Firebase CLI after reviewing mobile-client access needs.
+- Verify users, pickups, waste logs, rewards, redemptions, guidance, and notifications persist in the shared collections.
 
 ## Edge Cases
 
