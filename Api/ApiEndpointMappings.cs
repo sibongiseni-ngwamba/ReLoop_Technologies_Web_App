@@ -20,32 +20,29 @@ public static class ApiEndpointMappings
 
     private static void MapAuthentication(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/firebase/config", (IConfiguration configuration) =>
+        app.MapGet("/api/supabase/config", (IConfiguration configuration) =>
         {
-            var apiKey = configuration["Firebase:WebApiKey"];
-            var appId = configuration["Firebase:WebAppId"];
-            var authDomain = configuration["Firebase:AuthDomain"];
-            var projectId = configuration["Firebase:ProjectId"];
-            if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(appId) || string.IsNullOrWhiteSpace(authDomain) || string.IsNullOrWhiteSpace(projectId)) return Results.Problem(statusCode: 503, title: "Firebase web app configuration is not available.");
-            return Results.Ok(new { apiKey, appId, projectId, authDomain });
+            var url = configuration["Supabase:Url"];
+            var anonKey = configuration["Supabase:AnonKey"];
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(anonKey)) return Results.Problem(statusCode: 503, title: "Supabase client configuration is not available.");
+            return Results.Ok(new { url, anonKey });
         }).WithTags("Authentication");
-
-        app.MapPost("/api/auth/login", async (AuthRequest request, IFirebaseIdentityService identityService, ReLoopStore store, HttpContext context) =>
+        app.MapPost("/api/auth/login", async (AuthRequest request, ISupabaseIdentityService identityService, ReLoopStore store, HttpContext context) =>
         {
             if (ValidationErrors(request) is { Count: > 0 } errors) return Results.ValidationProblem(errors);
-            var identity = await identityService.VerifyIdTokenAsync(request.IdToken, context.RequestAborted);
-            if (identity is null) return Results.Problem(statusCode: 401, title: "Firebase authentication token is invalid, expired, revoked, or disabled.");
+            var identity = await identityService.VerifyAccessTokenAsync(request.IdToken, context.RequestAborted);
+            if (identity is null) return Results.Problem(statusCode: 401, title: "Supabase access token is invalid or expired.");
             var user = await store.EnsureUserAsync(identity);
             if (!user.IsActive) return Results.Problem(statusCode: 403, title: "This account is inactive.");
             await SignInAsync(context, user.UserId, user.FullName, user.Email, user.Role, request.KeepSignedIn);
             return Results.Ok(new { user = user.FullName, role = user.Role });
         }).WithTags("Authentication");
 
-        app.MapPost("/api/auth/signup", async (SignUpRequest request, IFirebaseIdentityService identityService, ReLoopStore store, HttpContext context) =>
+        app.MapPost("/api/auth/signup", async (SignUpRequest request, ISupabaseIdentityService identityService, ReLoopStore store, HttpContext context) =>
         {
             if (ValidationErrors(request) is { Count: > 0 } errors) return Results.ValidationProblem(errors);
-            var identity = await identityService.VerifyIdTokenAsync(request.IdToken, context.RequestAborted);
-            if (identity is null) return Results.Problem(statusCode: 401, title: "Firebase authentication token is invalid, expired, revoked, or disabled.");
+            var identity = await identityService.VerifyAccessTokenAsync(request.IdToken, context.RequestAborted);
+            if (identity is null) return Results.Problem(statusCode: 401, title: "Supabase access token is invalid or expired.");
             var user = await store.EnsureUserAsync(identity with { DisplayName = request.FullName.Trim() });
             if (!user.IsActive) return Results.Problem(statusCode: 403, title: "This account is inactive.");
             await SignInAsync(context, user.UserId, user.FullName, user.Email, user.Role, true);
@@ -94,7 +91,7 @@ public static class ApiEndpointMappings
         {
             if (ValidationErrors(request) is { Count: > 0 } errors) return Results.ValidationProblem(errors);
             ProfileDto profile;
-            if (!string.Equals(request.Email, Email(context), StringComparison.OrdinalIgnoreCase)) return Results.ValidationProblem(new Dictionary<string, string[]> { ["email"] = ["Change your Firebase Auth email first, then reload your profile."] });
+            if (!string.Equals(request.Email, Email(context), StringComparison.OrdinalIgnoreCase)) return Results.ValidationProblem(new Dictionary<string, string[]> { ["email"] = ["Change your Supabase Auth email first, then reload your profile."] });
             try { profile = await store.UpdateProfileAsync(Uid(context), request); }
             catch (InvalidOperationException exception) { return Results.Conflict(new { title = exception.Message }); }
             await SignInAsync(context, Uid(context)!, profile.FullName, profile.Email, profile.Role, true);
