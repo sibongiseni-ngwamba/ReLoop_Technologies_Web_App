@@ -7,7 +7,7 @@
     <form class="auth-card js-firebase-auth" data-mode="signup" data-redirect="/Dashboard" novalidate>
         <div class="auth-card__heading">
             <h1>Create your ReLoop account</h1>
-            <p>Start tracking scans, pickups, and reward points today.</p>
+            <p>Use Google to create your account and start recycling with ReLoop.</p>
         </div>
 
         <label class="app-field">
@@ -34,9 +34,11 @@
                 <small data-error-for="confirmPassword"></small>
             </label>
         </div>
-
         <button class="reloop-btn reloop-btn--primary reloop-btn--full" type="submit">Create account</button>
         <p class="form-status" aria-live="polite"></p>
+        <div class="auth-divider"><span>OR</span></div>
+        <button class="reloop-btn reloop-btn--primary reloop-btn--full js-google-signin" type="button">Continue with Google</button>
+        <p class="form-status" data-google-status aria-live="polite"></p>
         <p class="auth-switch">Already registered? <a asp-page="/Login">Login</a></p>
     </form>
 </section>

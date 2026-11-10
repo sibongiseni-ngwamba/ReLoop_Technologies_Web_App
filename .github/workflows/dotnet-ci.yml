@@ -21,6 +21,11 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Restore tools
         run: dotnet tool restore
 
@@ -32,3 +37,6 @@ jobs:
 
       - name: Test
         run: dotnet test --no-build --configuration Release --collect:"XPlat Code Coverage"
+
+      - name: Test browser domain logic
+        run: node --test tests/javascript/*.test.cjs

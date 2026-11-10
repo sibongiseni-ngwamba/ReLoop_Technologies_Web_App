@@ -15,7 +15,11 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ReLoop_Technologies_Web_App.styles.css" asp-append-version="true" />
 </head>
-<body class="reloop-shell">
+@{
+    var currentPage = (ViewContext.RouteData.Values["page"] as string ?? "/Index").Trim();
+    var protectedPage = new[] { "/Dashboard", "/ScanWaste", "/SchedulePickup", "/MyPickups", "/Profile", "/Logout", "/Admin/Index" }.Contains(currentPage, StringComparer.OrdinalIgnoreCase);
+}
+<body class="reloop-shell" data-page="@currentPage" data-protected-page="@protectedPage.ToString().ToLowerInvariant()" data-access-ready="false">
     <div class="reloop-shell__backdrop" aria-hidden="true"></div>
 
     <header class="reloop-topbar">
@@ -125,6 +129,18 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        window.RELOOP_FIREBASE_CONFIG = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new {
+            apiKey = Context.RequestServices.GetRequiredService<IConfiguration>()["Firebase:ApiKey"],
+            authDomain = Context.RequestServices.GetRequiredService<IConfiguration>()["Firebase:AuthDomain"],
+            projectId = Context.RequestServices.GetRequiredService<IConfiguration>()["Firebase:ProjectId"],
+            appId = Context.RequestServices.GetRequiredService<IConfiguration>()["Firebase:AppId"]
+        }));
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/13.2.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/13.2.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore-compat.js"></script>
+    <script src="~/js/reloop-domain.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script type="module" src="~/js/firebase-auth.js" asp-append-version="true"></script>
 
