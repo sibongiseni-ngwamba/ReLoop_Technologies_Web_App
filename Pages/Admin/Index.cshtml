@@ -9,9 +9,10 @@
             <strong>Admin Panel</strong>
             <a class="is-active" href="#overview">Overview</a>
             <a href="#users">Users Management</a>
-            <a href="#pickups">Active Pickups</a>
-            <a href="#stats">Environmental Stats</a>
-            <a href="#partners">Partner Schedulers</a>
+            <a href="#pickups">Pickup Management</a>
+            <a href="#rewards">Rewards Catalogue</a>
+            <a href="#claims">Reward Claims</a>
+            <a href="#scans">Waste Scan Log</a>
         </aside>
 
         <div>
@@ -20,6 +21,8 @@
                 <p>Monitor municipal collection performance, eco verification logs, and reward activity.</p>
             </div>
 
+            <p class="form-status" data-admin-status aria-live="polite">Checking your administrator access…</p>
+            <div class="admin-workspace" data-admin-workspace hidden>
             <div class="metric-grid" data-admin-metrics></div>
 
             <div class="content-grid">
@@ -35,6 +38,23 @@
                         <tbody data-admin-table></tbody>
                     </table>
                 </section>
+            </div>
+
+            <section class="panel admin-management" id="users">
+                <div class="panel-heading"><h2>User Management</h2><button class="reloop-btn reloop-btn--secondary" type="button" data-admin-refresh="users">Refresh</button></div>
+                <div class="table-panel"><table class="app-table"><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Active</th><th>Actions</th></tr></thead><tbody data-admin-users></tbody></table></div>
+            </section>
+            <section class="panel admin-management" id="pickups">
+                <div class="panel-heading"><h2>Pickup Management</h2><button class="reloop-btn reloop-btn--secondary" type="button" data-admin-refresh="pickups">Refresh</button></div>
+                <div class="table-panel"><table class="app-table"><thead><tr><th>Reference</th><th>User</th><th>Schedule</th><th>Waste</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-pickups></tbody></table></div>
+            </section>
+            <section class="panel admin-management" id="rewards">
+                <h2>Rewards Catalogue</h2>
+                <form data-admin-create="reward" class="admin-create-form"><label class="app-field"><span>Reward name</span><input name="itemName" required maxlength="100"></label><label class="app-field"><span>Points cost</span><input name="pointsCost" type="number" min="1" required></label><label class="app-field"><span>Stock</span><input name="stockQuantity" type="number" min="0"></label><label class="app-field"><span>Description</span><input name="description" maxlength="300"></label><button class="reloop-btn reloop-btn--primary" type="submit">Create reward</button></form>
+                <div class="table-panel"><table class="app-table"><thead><tr><th>Reward</th><th>Points</th><th>Stock</th><th>Active</th><th>Actions</th></tr></thead><tbody data-admin-rewards></tbody></table></div>
+            </section>
+            <section class="panel admin-management" id="claims"><div class="panel-heading"><h2>Reward Claims</h2><button class="reloop-btn reloop-btn--secondary" type="button" data-admin-refresh="redemptionLogs">Refresh</button></div><form data-admin-create="claim" class="admin-create-form"><label class="app-field"><span>User UID</span><input name="userId" required></label><label class="app-field"><span>Reward item ID</span><input name="rewardItemId" required></label><label class="app-field"><span>Points used</span><input name="pointsUsed" type="number" min="0" required></label><label class="app-field"><span>Status</span><select name="status"><option>Approved</option><option>Redeemed</option><option>Fulfilled</option></select></label><button class="reloop-btn reloop-btn--primary" type="submit">Create claim</button></form><div class="table-panel"><table class="app-table"><thead><tr><th>Claim</th><th>User</th><th>Reward</th><th>Points</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-claims></tbody></table></div></section>
+            <section class="panel admin-management" id="scans"><h2>Waste Scan Log</h2><div class="table-panel"><table class="app-table"><thead><tr><th>Record</th><th>User</th><th>Category</th><th>Weight</th><th>Date</th></tr></thead><tbody data-admin-scans></tbody></table></div></section>
             </div>
         </div>
     </div>

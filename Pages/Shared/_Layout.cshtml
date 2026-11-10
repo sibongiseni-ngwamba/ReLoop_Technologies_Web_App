@@ -9,7 +9,11 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ReLoop_Technologies_Web_App.styles.css" asp-append-version="true" />
 </head>
-<body class="reloop-shell">
+@{
+    var currentPage = (ViewContext.RouteData.Values["page"] as string ?? "/Index").Trim();
+    var protectedPage = new[] { "/Dashboard", "/ScanWaste", "/SchedulePickup", "/MyPickups", "/Profile", "/Logout", "/Admin/Index" }.Contains(currentPage, StringComparer.OrdinalIgnoreCase);
+}
+<body class="reloop-shell" data-page="@currentPage" data-protected-page="@protectedPage.ToString().ToLowerInvariant()" data-access-ready="false">
     <div class="reloop-shell__backdrop" aria-hidden="true"></div>
 
     <header class="reloop-topbar">
@@ -35,11 +39,12 @@
             <partial name="_ShellNav" />
 
             <div class="reloop-topbar__actions">
-                <a class="reloop-icon-button" asp-page="/Dashboard" aria-label="Notifications">
+                <a class="reloop-icon-button" data-auth-nav data-roles="resident,agent,admin" asp-page="/Dashboard" aria-label="Notifications" hidden>
                     <span aria-hidden="true">🔔</span>
                 </a>
-                <a class="reloop-avatar" asp-page="/Profile" aria-label="User profile">A</a>
-                <a class="reloop-btn reloop-btn--secondary reloop-topbar__login" asp-page="/Login">Login</a>
+                <a class="reloop-avatar" data-auth-nav data-roles="resident,agent,admin" asp-page="/Profile" aria-label="User profile" hidden>A</a>
+                <a class="reloop-btn reloop-btn--secondary reloop-topbar__login" data-guest-nav asp-page="/Login">Login</a>
+                <a class="reloop-btn reloop-btn--secondary reloop-logout-link" data-auth-nav data-roles="resident,agent,admin" asp-page="/Logout" hidden>Logout</a>
             </div>
         </div>
     </header>
@@ -79,9 +84,9 @@
                 <div>
                     <h2>Platform</h2>
                     <a asp-page="/Index">Home</a>
-                    <a asp-page="/Dashboard">Dashboard</a>
-                    <a asp-page="/ScanWaste">Scan Waste</a>
-                    <a asp-page="/SchedulePickup">Schedule Pickup</a>
+                    <a data-auth-nav data-roles="resident,agent,admin" asp-page="/Dashboard" hidden>Dashboard</a>
+                    <a data-auth-nav data-roles="resident,admin" asp-page="/ScanWaste" hidden>Scan Waste</a>
+                    <a data-auth-nav data-roles="resident,admin" asp-page="/SchedulePickup" hidden>Schedule Pickup</a>
                 </div>
                 <div>
                     <h2>Company</h2>
@@ -91,9 +96,10 @@
                 </div>
                 <div>
                     <h2>Account</h2>
-                    <a asp-page="/Profile">Profile</a>
-                    <a asp-page="/MyPickups">My Pickups</a>
-                    <a asp-page="/Logout">Logout</a>
+                    <a data-auth-nav data-roles="resident,agent,admin" asp-page="/Profile" hidden>Profile</a>
+                    <a data-auth-nav data-roles="resident,agent" asp-page="/MyPickups" hidden>My Pickups</a>
+                    <a data-auth-nav data-roles="resident,agent,admin" asp-page="/Logout" hidden>Logout</a>
+                    <a data-admin-nav asp-page="/Admin/Index" hidden>Admin console</a>
                 </div>
             </div>
         </div>
@@ -101,6 +107,18 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        window.RELOOP_FIREBASE_CONFIG = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new {
+            apiKey = Context.RequestServices.GetRequiredService<IConfiguration>()["Firebase:ApiKey"],
+            authDomain = Context.RequestServices.GetRequiredService<IConfiguration>()["Firebase:AuthDomain"],
+            projectId = Context.RequestServices.GetRequiredService<IConfiguration>()["Firebase:ProjectId"],
+            appId = Context.RequestServices.GetRequiredService<IConfiguration>()["Firebase:AppId"]
+        }));
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/13.2.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/13.2.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore-compat.js"></script>
+    <script src="~/js/reloop-domain.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)

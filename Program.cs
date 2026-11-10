@@ -46,32 +46,6 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 
-app.MapPost("/api/auth/login", async (AuthRequest request, ReLoopStore store, HttpContext httpContext) =>
-{
-    var errors = Validate(request);
-    if (errors.Count > 0)
-    {
-        return Results.ValidationProblem(errors);
-    }
-
-    var user = await store.FindOrCreateUserAsync("Alex Rivera", request.Email, request.Password);
-    await SignInUserAsync(httpContext, user.FullName, user.Email, user.Role, request.KeepSignedIn);
-    return Results.Ok(new { user = user.FullName, role = user.Role });
-}).WithTags("Authentication");
-
-app.MapPost("/api/auth/signup", async (SignUpRequest request, ReLoopStore store, HttpContext httpContext) =>
-{
-    var errors = Validate(request);
-    if (errors.Count > 0)
-    {
-        return Results.ValidationProblem(errors);
-    }
-
-    var user = await store.FindOrCreateUserAsync(request.FullName, request.Email, request.Password);
-    await SignInUserAsync(httpContext, user.FullName, user.Email, user.Role, true);
-    return Results.Created("/Dashboard", new { user = user.FullName, role = user.Role });
-}).WithTags("Authentication");
-
 app.MapPost("/api/auth/logout", async (HttpContext httpContext) =>
 {
     await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
