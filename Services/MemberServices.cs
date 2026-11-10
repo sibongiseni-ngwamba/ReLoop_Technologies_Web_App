@@ -7,7 +7,7 @@ public sealed class MemberServices(IReLoopDocumentStore documents, ReLoopStore s
 {
     public async Task<RewardsDto> GetRewardsAsync(string uid)
     {
-        var balance = await documents.GetAsync<RewardAccountDocument>(ReLoopCollections.Rewards, uid) ?? new RewardAccountDocument { UserId = uid };
+        var balance = await documents.GetAsync<RewardAccountDocument>(FirestoreCollections.Rewards, uid) ?? new RewardAccountDocument { UserId = uid };
         var rewardItems = await store.GetRewardItemsAsync();
         var rewardNames = rewardItems.ToDictionary(item => item.RewardItemId, item => item.ItemName, StringComparer.Ordinal);
         var rewards = rewardItems.Where(item => item.IsActive).OrderBy(item => item.PointsCost)
@@ -22,8 +22,8 @@ public sealed class MemberServices(IReLoopDocumentStore documents, ReLoopStore s
         var redemptionId = Guid.NewGuid().ToString();
         var result = await documents.RunTransactionAsync(async transaction =>
         {
-            var reward = await transaction.GetAsync<RewardItemDocument>(ReLoopCollections.RewardItems, request.RewardId);
-            var balance = await transaction.GetAsync<RewardAccountDocument>(ReLoopCollections.Rewards, uid);
+            var reward = await transaction.GetAsync<RewardItemDocument>(FirestoreCollections.RewardItems, request.RewardId);
+            var balance = await transaction.GetAsync<RewardAccountDocument>(FirestoreCollections.Rewards, uid);
             if (reward is null || !reward.IsActive) return new RedemptionAttempt(null, "This reward is unavailable.", null);
             balance ??= new RewardAccountDocument { UserId = uid };
             if (balance.PointsBalance < reward.PointsCost) return new RedemptionAttempt(null, "You do not have enough points for this reward.", null);
@@ -42,9 +42,9 @@ public sealed class MemberServices(IReLoopDocumentStore documents, ReLoopStore s
                 TransactionId = Guid.NewGuid().ToString(), UserId = uid, TransactionType = "redeem",
                 Points = -reward.PointsCost, RelatedId = redemptionId, Description = $"Redeemed {reward.ItemName}", CreatedAt = now
             };
-            transaction.Set(ReLoopCollections.Rewards, uid, balance);
-            transaction.Set(ReLoopCollections.RedemptionLogs, redemption.RedemptionId, redemption);
-            transaction.Set(ReLoopCollections.PointsTransactions, points.TransactionId, points);
+            transaction.Set(FirestoreCollections.Rewards, uid, balance);
+            transaction.Set(FirestoreCollections.RedemptionLogs, redemption.RedemptionId, redemption);
+            transaction.Set(FirestoreCollections.PointsTransactions, points.TransactionId, points);
             return new RedemptionAttempt(redemption, null, reward.ItemName);
         });
 
