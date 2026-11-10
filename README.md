@@ -148,20 +148,6 @@ The test project uses an in-memory Firestore document-store substitute and fake 
 
 The manual QA checklist is in [QA-CHECKLIST.md](QA-CHECKLIST.md).
 
-## Wireframes
-
-The images below are the supplied wireframes and brand references used for the implementation.
-
-### Landing Page
-
-![Landing page wireframe](docs/wireframes/01-landing.jpeg)
-
-### Login Page
-
-![Login page wireframe](docs/wireframes/02-login.jpeg)
-
-### Admin Dashboard
-
 ## Web features
 
 - Email/password registration and sign-in through Firebase Authentication.
@@ -204,6 +190,11 @@ The original UI wireframes are under [`docs/wireframes`](docs/wireframes).
 ## Demo Video
 
 [Watch or download the ReLoop demo video](assets/Demo%20Video.mp4).
+
+[Watch the ReLoop demo video Youtube Video](https://youtu.be/xLQWkZXzUnc?si=SZLBqO0JhmwX5cy6)
+
+https://youtu.be/xLQWkZXzUnc?si=SZLBqO0JhmwX5cy6
+
 - Firebase Auth handles passwords. The server verifies Firebase ID tokens and authorizes the secure application session against the current Firestore user role and active state.
 - Scan classification is a deterministic demo classifier based on filename hints until an AI/image model is connected.
 - Scan classification and points are recorded in Firestore; production image recognition still requires a connected model.
